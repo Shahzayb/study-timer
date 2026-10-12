@@ -71,6 +71,16 @@ Decided but not built. The full spec is in
 - The toolchain is Swift 6.4 with the macOS 27 SDK. Observation macros, Swift Testing, and
   `swift format` are available.
 - Code MUST NOT use `#Preview`. Its macro plugin ships only with Xcode.
+- The default build system does not load the Swift Testing macro plugin. The test target MUST pass
+  `-plugin-path /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing` through
+  `.unsafeFlags` in its `swiftSettings`. Without it, `@Test` fails to expand.
+  `--build-system native` cannot find the `Testing` module.
+- Claude's shell has no Screen Recording permission, so `screencapture` fails. To render a view
+  to PNG in-process, use `CALayer.render(in:)`. `NSView.cacheDisplay` drops SwiftUI content.
+  Neither renders window materials.
+- Computer use cannot list or target an `LSUIElement` app. It can target the same app under a
+  regular activation policy. A popover has no AX window, so the background `app_*` tools fail on
+  it. Full-screen screenshots and clicks reach it.
 - The Mac has no code-signing identities. Builds use ad-hoc signing.
 
 ## Commands
