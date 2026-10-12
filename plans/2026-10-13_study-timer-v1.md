@@ -1,6 +1,6 @@
 # Study Timer v1
 
-Status: approved, not implemented.
+Status: draft. Approval waits on the UI spec.
 
 Read first: `CLAUDE.md`, then `memory-bank/progress.md`, `memory-bank/projectbrief.md`, and
 `memory-bank/techContext.md`. `techContext.md` holds the Notion IDs, the API contracts, and the
@@ -24,6 +24,25 @@ the date range. A Notion analysis on 2026-10-13 (654 sessions since 2023-06) fou
 The goal is a menu bar app that removes this friction. The owner picks cards, times the session,
 and commits one accurate row.
 
+## Quality bar
+
+- The app MUST look like a native macOS menu bar extra. Use system controls, SF Symbols, the
+  system font, and system materials. Do not add a custom palette.
+- Manual testing by Claude and the owner is the primary verification. Unit tests cover timing
+  math, date parsing, ranking, and retry logic.
+
+## UI spec
+
+_Not yet written._
+
+1. Claude builds a throwaway SwiftUI prototype outside the repo. It shows every popover state in a
+   real popover: first run, start, running, paused, alarm, finish, commit error, and settings.
+2. Claude screenshots each state. The owner clicks through the prototype.
+3. After the owner approves, this section records each state's layout, keyboard flow, and its
+   empty, loading, and error states.
+
+Implementation MUST NOT start before the owner approves this section.
+
 ## Behavior
 
 ### Menu bar
@@ -43,13 +62,14 @@ and commits one accurate row.
 - Only the part of a session inside the window counts.
 - A session linked to several cards counts toward each card. It counts once in the total.
 - Queued commits appear in the stats, marked as not synced.
+- A fetched row with the same title and a start within ±60 s hides the matching queued commit.
 - Refresh on popover open when data is older than 30 s, and after every commit.
 
 ### Start
 
 - Cards are multi-select with search. Selected cards stay at the top of the list.
 - Ranking: frecency first. Each session in the last 90 days adds `0.5^(ageDays / 7)` to its cards.
-  Ties sort by status "Doing" first, then by name.
+  Ties sort by status "Doing" first, then by name. Without a `Status` property, ties sort by name.
 - The title is editable. Its default chain:
   1. The title of the most recent session linked to the first selected card.
   2. The first selected card's name.
@@ -64,13 +84,18 @@ and commits one accurate row.
 
 - Pause and resume are manual.
 - System sleep pauses. The timer stays paused after wake. Screen lock MUST NOT pause.
+- A quit, crash, or shutdown keeps the session. A running session comes back paused at its last
+  heartbeat. Time while the app was not running MUST NOT count.
 - At zero, the countdown starts the alarm:
-  - A sound loops until the owner mutes it or the session ends.
+  - A sound loops until the owner mutes it, pauses, or ends the session. Resume MUST NOT restart
+    it.
   - A notification banner appears.
   - The timer keeps counting overtime.
 - Mute silences the sound only. The timer keeps counting.
 - The notification is scheduled on start or resume for the remaining time and cancelled on pause.
 - Request notification permission at the first countdown start.
+- The `--fast-countdown` launch argument runs countdown minutes as seconds. It exists for manual
+  testing only. The UI does not show it.
 
 ### Finish
 
@@ -112,19 +137,23 @@ Editing times, rounding, logging past sessions, and creating cards.
 - **Package:** a SwiftPM executable built with the Command Line Tools. `build.sh` builds the
   release binary and assembles `Study Timer.app`. It writes `Info.plist` with `LSUIElement` and
   bundle ID `dev.local.StudyTimer`, ad-hoc signs the app, and installs it to `~/Applications`.
+  Manual testing MUST use the installed bundle. Notifications and the login item need a bundle,
+  so `swift run` cannot exercise them.
 - **Menu bar:** an AppKit `NSStatusItem` with an `.transient` `NSPopover` that hosts SwiftUI. The
   popover is about 360 pt wide.
 - **Hotkey:** Carbon `RegisterEventHotKey` for ⌃⌥S.
 - **Notion:** `URLSession` with async/await and `Codable`. At launch the app resolves the title,
   date, and relation properties by type from `GET /v1/data_sources/{id}`. The cards data source
-  comes from the relation's `data_source_id`.
+  comes from the relation's `data_source_id`. Card `Status` is found by name.
 - **Timer state:** `accumulated + (now − segmentStart)` from wall-clock dates. A 0.5 s timer
   updates the label only while a session is active. The label changes only when its text changes.
 - **Sleep:** `NSWorkspace.willSleepNotification` triggers pause.
 - **Alarm:** a looping `NSSound` plus `UNUserNotificationCenter`.
 - **Login item:** `SMAppService.mainApp`.
 - **Persistence:** `~/Library/Application Support/Study Timer/` holds `active-session.json` and
-  `commit-queue.json`. The app writes them on every state change. The API key lives only in the
+  `commit-queue.json`. The app writes them on every state change. While a session runs, it also
+  writes a heartbeat every 30 s. A clean quit writes the quit moment as the last heartbeat.
+  Settings and the last mode and duration live in `UserDefaults`. The API key lives only in the
   Keychain.
 
 ## Files
@@ -137,30 +166,51 @@ Editing times, rounding, logging past sessions, and creating cards.
 
 ## Implementation order
 
+Prerequisites:
+
+- The Command Line Tools build a SwiftPM package. See `memory-bank/progress.md`.
+- The owner approves the UI spec.
+- The `Study Timer Test` database exists. The owner's Notion internal integration is connected to
+  it and to both live databases.
+
 Work on branch `feat/study-timer-v1`. Commit after each step.
 
-1. Package skeleton, `build.sh`, and a status item with an empty popover.
-2. `ActiveSession` timing math with tests: pause, sleep, overtime, and both commit intervals.
-3. `NotionClient` with schema discovery, pagination, date parsing, and tests.
-4. Stats and card ranking with tests (24-hour overlap, frecency, title default).
-5. Start and running views.
-6. Alarm, notifications, and sleep pause.
-7. `CommitQueue` with retry, backoff, and duplicate check, with tests.
-8. Settings, Keychain, launch at login, and the hotkey.
+A step marked **checkpoint** ends with a manual test before its commit:
+
+1. Claude installs with `build.sh`, drives the app with computer use, and screenshots each changed
+   state. Claude compares each screenshot with the UI spec.
+2. The owner tries the same states.
+3. The step commits after the owner's OK.
+
+All manual commits go to the `Study Timer Test` database. Rows in the live database need the
+owner's permission.
+
+1. Package skeleton, `build.sh`, a status item with an empty popover, and the ⌃⌥S hotkey.
+   **Checkpoint.**
+2. `ActiveSession` timing math with tests: pause, sleep, relaunch, overtime, and both commit
+   intervals.
+3. Settings, Keychain, and `NotionClient` with schema discovery, pagination, date parsing, and
+   tests. **Checkpoint:** enter the API key and load the test database.
+4. Stats and card ranking with tests (24-hour overlap, frecency, title default). **Checkpoint.**
+5. Start, running, and finish views. **Checkpoint.**
+6. Alarm, notifications, and sleep pause. **Checkpoint** with `--fast-countdown`.
+7. `CommitQueue` with retry, backoff, and duplicate check, with tests. **Checkpoint.**
+8. Launch at login. **Checkpoint.**
 
 ## Verification
 
 1. Run `swift test`, then both `swift format` commands from `CLAUDE.md`.
-2. Build and install with `build.sh`. The owner enters the API key in Settings.
-3. Run a 1-minute countdown. Check the alarm, mute, and overtime.
-4. Commit once with overtime and once with planned time only. Confirm both rows in Notion. These
-   are real rows in the owner's database. Ask before creating them.
+2. Build and install with `build.sh`. Settings points at the `Study Timer Test` data source.
+3. With `--fast-countdown`, run a 1-minute countdown. Check the alarm, mute, pause during the
+   alarm, and overtime.
+4. Commit once with overtime and once with planned time only. Confirm both rows in the test
+   database.
 5. Run `pmset sleepnow` mid-session. The timer MUST be paused after wake and stay paused.
-6. Commit with Wi-Fi off. The commit MUST queue. Turn Wi-Fi on. The row MUST appear exactly once.
-7. Check the open validation gaps in `memory-bank/progress.md`: the login item, the notification
-   prompt, and a ⌃⌥S conflict.
-
-Prerequisite: the owner creates a Notion internal integration and connects it to both databases.
+6. Quit mid-session and relaunch. The session MUST come back paused at the quit moment. Repeat
+   with `kill -9`. The session MUST come back paused at most 30 s before the kill.
+7. Commit with Wi-Fi off. The commit MUST queue. Turn Wi-Fi on. The row MUST appear exactly once.
+8. Check the open validation gaps in `memory-bank/progress.md`.
+9. Point Settings at the live data source. With the owner's permission, commit one session.
 
 ## Done when
 

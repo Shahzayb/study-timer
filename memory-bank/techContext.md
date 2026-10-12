@@ -15,7 +15,9 @@ Decided but not built. The full spec is in
 - The hotkey uses Carbon `RegisterEventHotKey`. It needs no Accessibility permission.
 - Elapsed time equals `accumulated + (now − segmentStart)` from wall-clock `Date`s. The app MUST
   NOT count ticks. Tick counting drifts across sleep and lag.
-- The app saves the active session on every state change. A quit or crash keeps it.
+- The app saves the active session on every state change, plus a heartbeat every 30 s while it
+  runs. A quit, crash, or shutdown keeps it. A running session restores as paused at its last
+  heartbeat, so downtime never counts.
 - A commit writes `Interval = [end − activeTime, end]` at exact seconds. Pauses move the start
   later.
 - `end` is the commit moment. When paused, `end` is the pause moment. "Commit without overtime"
@@ -28,7 +30,8 @@ Decided but not built. The full spec is in
 - The Notion API uses `Notion-Version: 2025-09-03`.
 - `POST /v1/data_sources/{id}/query` returns at most 100 rows. Follow `next_cursor`.
 - `POST /v1/pages` creates a row with `parent: {type: "data_source_id", data_source_id}`.
-- A relation schema exposes `data_source_id`. Relation writes accept `data_source_id` only.
+- A relation schema exposes `data_source_id`. Relation schema writes accept `data_source_id` only.
+  A page's relation value is a list of page IDs.
 - The sessions database is `📚 Daily Study Stats`. Its database ID is
   `<redacted>`. Its data source ID is
   `<redacted>`.
@@ -40,10 +43,14 @@ Decided but not built. The full spec is in
 - The cards database is `My Learning Path`. Its database ID is
   `<redacted>`. Its data source ID is
   `<redacted>`.
-- Cards have `Name` (title) and a `Status` select. The status options are Doing, Done 🙌, Gave Up,
-  Backlog, and On Hold.
+- Cards have `Name` (title) and two selects, `Status` and `Priority`. Two selects rule out a type
+  lookup. The app MUST find `Status` by name. Without it, ranking drops the "Doing" tie-break. The
+  status options are Doing, Done 🙌, Gave Up, Backlog, and On Hold.
 - The cards self-relation `Relations` links umbrella cards and child cards. The rollup
   `Time Spent (hours)` sums each card's session `Hours`.
+- The session-to-card relation is two-way. Cards show it as `📚 Daily Study Stats`.
+- Manual testing writes to a separate `Study Timer Test` database. It has a title, a date, and a
+  one-way relation to cards, so the cards schema stays unchanged. Its IDs: _Not yet established._
 - Notion date strings arrive in three forms: with milliseconds, without them, or date-only. The
   offset is `Z` or `+00:00`. The parser MUST handle every form.
 - How date filters treat range ends is unverified. The app queries a 90-day window by start date.

@@ -6,6 +6,8 @@ Remove the friction of logging study sessions in Notion. From the macOS menu bar
 cards, times a session, and commits one accurate row to Notion without opening it. They can also
 see their study time for the last 24 hours at a glance.
 
+The app MUST feel like a native macOS menu bar extra: pleasant, cohesive, and polished.
+
 ## Users
 
 One person, the owner, on one Mac (M4 Pro, macOS 27+). The app runs locally and is never
@@ -26,4 +28,5 @@ distributed. Claude writes and maintains the code.
 - Editing session times, rounding times, or logging past sessions.
 - Creating or editing cards, or changing the Notion schema.
 - App Store distribution, other users, or other devices.
-- Any storage besides Notion, apart from the local retry queue and the active-session state.
+- Any storage besides Notion, apart from the local retry queue, the active-session state, and
+  preferences in `UserDefaults`.
