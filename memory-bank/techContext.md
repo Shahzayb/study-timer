@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Implementation steps 1 to 3 are built. The rest is decided but not built. The full spec is in
+Implementation steps 1 to 4 are built. The rest is decided but not built. The full spec is in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md).
 
 - The app is a SwiftPM package in Swift 6.4 with strict concurrency. UI state runs on
@@ -53,7 +53,8 @@ Implementation steps 1 to 3 are built. The rest is decided but not built. The fu
 - Manual testing writes to a separate `Study Timer Test` database. It has `Title` (title),
   `Interval` (date), and `Cards`, a one-way relation to cards, so the cards schema stays unchanged.
   Its database ID is `<redacted>`. Its data source ID is
-  `<redacted>`.
+  `<redacted>`. It keeps four `checkpoint …` rows from 2026-10-12 and
+  2026-10-13, linked to `English Speaking` and `German A1`. They raise those cards in the ranking.
 - All three databases are top-level pages. The integration MUST be connected to each one. Nothing
   inherits access. The owner's integration has Read content and Insert content and is connected to
   all three.
@@ -71,6 +72,8 @@ Implementation steps 1 to 3 are built. The rest is decided but not built. The fu
   item without a prompt, so rebuilding during a checkpoint is safe.
 - macOS 27 draws status items in the Window Server. A status item click cannot activate the app.
   `NSApp.activate()` works from the Carbon hotkey only.
+- Computer use MUST NOT put live Notion data on screen. The permission system blocks it. Checkpoints
+  use rows in `Study Timer Test`.
 - An accessory app has no menu bar. Text fields get ⌘V, ⌘C, ⌘A, and ⌘Z only from the Edit menu the
   app sets as `NSApp.mainMenu`.
 
