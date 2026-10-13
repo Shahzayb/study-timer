@@ -6,7 +6,7 @@ struct StatsView: View {
   var body: some View {
     let stats = model.stats(at: .now)
     VStack(spacing: 0) {
-      SubHeader(title: "Last 24 hours") {
+      SubHeader(title: "Today") {
         _ = model.goBack()
       } trailing: {
         if stats != nil {

@@ -3,7 +3,14 @@ import Testing
 
 @testable import StudyTimer
 
-private let now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+/// Noon UTC, so the UTC day began 12 hours earlier.
+private let now = Date(timeIntervalSinceReferenceDate: 800_020_800)
+
+private let utc: Calendar = {
+  var calendar = Calendar(identifier: .gregorian)
+  calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+  return calendar
+}()
 
 private func hoursAgo(_ hours: Double) -> Date { now.addingTimeInterval(-hours * 3600) }
 
@@ -19,22 +26,30 @@ private let swift = CardRow(id: "sw", name: "Swift", status: nil)
 private let algebra = CardRow(id: "la", name: "Linear Algebra", status: "Backlog")
 
 @Suite struct DayStatsTests {
-  @Test func countsOnlyThePartInsideTheWindow() {
+  @Test func countsOnlyThePartSinceMidnight() {
     let stats = DayStats(
       sessions: [
         session("inside", from: 2, to: 1, cards: ["en"]),
-        session("crossing", from: 25, to: 23, cards: ["en"]),
-        session("before", from: 30, to: 29, cards: ["en"]),
-      ], cards: [english], now: now)
+        session("crossing", from: 13, to: 11, cards: ["en"]),
+        session("yesterday", from: 20, to: 19, cards: ["en"]),
+      ], cards: [english], now: now, calendar: utc)
     #expect(stats.total == 2 * 3600)
     #expect(stats.rows.map(\.id) == ["inside", "crossing"])
     #expect(stats.rows.map(\.seconds) == [3600, 3600])
   }
 
+  @Test func theCalendarTimeZoneSetsTheDayStart() {
+    var east = utc
+    east.timeZone = TimeZone(secondsFromGMT: 3 * 3600)!
+    let sessions = [session("late", from: 14, to: 13, cards: ["en"])]
+    #expect(DayStats(sessions: sessions, cards: [english], now: now, calendar: utc).total == 0)
+    #expect(DayStats(sessions: sessions, cards: [english], now: now, calendar: east).total == 3600)
+  }
+
   @Test func aMultiCardSessionCountsOncePerCardAndOnceInTheTotal() {
     let stats = DayStats(
       sessions: [session("a", from: 3, to: 2, cards: ["en", "job", "en"])], cards: [english, job],
-      now: now)
+      now: now, calendar: utc)
     #expect(stats.total == 3600)
     #expect(stats.cardTotals.map(\.name) == ["English", "Job Search"])
     #expect(stats.cardTotals.map(\.seconds) == [3600, 3600])
@@ -45,7 +60,7 @@ private let algebra = CardRow(id: "la", name: "Linear Algebra", status: "Backlog
       sessions: [
         session("a", from: 5, to: 4.5, cards: []), session("b", from: 3, to: 2.5, cards: []),
         session("c", from: 2, to: 0, cards: ["en"]),
-      ], cards: [english], now: now)
+      ], cards: [english], now: now, calendar: utc)
     #expect(stats.cardTotals.map(\.name) == ["English", "No card"])
     #expect(stats.cardTotals.last?.isNoCard == true)
     #expect(stats.cardTotals.last?.seconds == 3600)
@@ -56,7 +71,7 @@ private let algebra = CardRow(id: "la", name: "Linear Algebra", status: "Backlog
       sessions: [
         session("old", from: 10, to: 9, cards: ["gone"]),
         session("new", from: 2, to: 1, cards: ["en"]),
-      ], cards: [english], now: now)
+      ], cards: [english], now: now, calendar: utc)
     #expect(stats.rows.map(\.id) == ["new", "old"])
     #expect(stats.rows.last?.cardNames == ["Unknown card"])
   }
@@ -66,7 +81,7 @@ private let algebra = CardRow(id: "la", name: "Linear Algebra", status: "Backlog
       sessions: [
         session("future", from: -2, to: -3, cards: ["en"]),
         session("backward", from: 1, to: 2, cards: ["en"]),
-      ], cards: [english], now: now)
+      ], cards: [english], now: now, calendar: utc)
     #expect(stats.total == 0)
     #expect(stats.rows.isEmpty)
     #expect(stats.cardTotals.isEmpty)

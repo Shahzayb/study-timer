@@ -41,7 +41,7 @@ struct Footer: View {
           } else {
             ProgressView().controlSize(.mini)
           }
-          Text("24h").foregroundStyle(.secondary)
+          Text("today").foregroundStyle(.secondary)
         }
         .font(.callout)
         .padding(.horizontal, 10)
@@ -51,7 +51,7 @@ struct Footer: View {
       }
       .buttonStyle(PressStyle())
       .onHover { hovering.wrappedValue = $0 }
-      .help("Last 24 hours")
+      .help("Today")
       Spacer()
       if model.refreshing {
         ProgressView().controlSize(.small)

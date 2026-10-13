@@ -1,6 +1,6 @@
 import Foundation
 
-/// The last 24 hours of sessions. Only the part of a session inside the window counts.
+/// Today's sessions since local midnight. Only the part of a session after midnight counts.
 struct DayStats: Equatable {
   struct CardTotal: Equatable, Identifiable {
     /// The card ID. Sessions without a card share one total.
@@ -17,18 +17,16 @@ struct DayStats: Equatable {
     var id: String { session.id }
   }
 
-  static let window: TimeInterval = 86_400
-
   private(set) var total: TimeInterval = 0
   private(set) var cardTotals: [CardTotal] = []
   private(set) var rows: [Row] = []
 
-  init(sessions: [SessionRow], cards: [CardRow], now: Date) {
+  init(sessions: [SessionRow], cards: [CardRow], now: Date, calendar: Calendar = .current) {
     let names = Dictionary(cards.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
-    let windowStart = now.addingTimeInterval(-Self.window)
+    let dayStart = calendar.startOfDay(for: now)
     var perCard: [String: TimeInterval] = [:]
     for session in sessions {
-      let seconds = min(session.end, now).timeIntervalSince(max(session.start, windowStart))
+      let seconds = min(session.end, now).timeIntervalSince(max(session.start, dayStart))
       guard seconds > 0 else { continue }
       // A session linked to several cards counts toward each card, but once in the total.
       total += seconds
