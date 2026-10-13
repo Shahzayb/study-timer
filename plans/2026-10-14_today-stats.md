@@ -18,8 +18,8 @@ The day starts at local midnight.
 4. The Stats header reads `Today`.
 5. `StatsTests` use a noon `now`. The window test becomes a midnight-crossing test. A new test
    checks that the calendar's time zone sets the day boundary.
-6. `docs/screenshot.png` drops the removed chart icon and reads `1h 58m today`. The footer text
-   is redrawn on the existing image, because a retake would put live Notion data on screen.
+6. `docs/screenshot.png` is retaken from the running app: a 20-minute countdown one minute in.
+   The owner allowed live Notion data on screen for this capture.
 7. After the change lands, `projectbrief.md` and `techContext.md` drop the 24-hour wording.
 
 ## Out of scope
