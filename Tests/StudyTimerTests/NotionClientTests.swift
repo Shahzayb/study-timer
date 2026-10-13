@@ -152,7 +152,7 @@ private func client(_ handler: @escaping (NotionStub.Call) throws -> (Int, Strin
 
   @Test(arguments: [
     (401, "Key rejected"), (403, "Database not shared"), (404, "Database not shared"),
-    (400, "Notion rejected the row"), (429, "Notion unavailable"), (503, "Notion unavailable"),
+    (400, "Notion rejected the row"), (503, "Notion unavailable"),
   ])
   func httpErrorsMapToTheSpecText(status: Int, text: String) async {
     let notion = client { _ in (status, #"{"object": "error", "message": "nope"}"#) }
@@ -162,6 +162,21 @@ private func client(_ handler: @escaping (NotionStub.Call) throws -> (Int, Strin
     } catch let error as NotionError {
       #expect(error == .http(status: status, message: "nope"))
       #expect(error.text == text)
+    } catch {
+      Issue.record("Unexpected \(error)")
+    }
+  }
+
+  @Test func rateLimitReadsRetryAfter() async {
+    let notion = client { _ in (429, #"{"object": "error", "message": "slow down"}"#) }
+    NotionStub.headers = ["Retry-After": "7"]
+    do {
+      _ = try await notion.discover(sessionsID: "aaaa")
+      Issue.record("Expected an error")
+    } catch let error as NotionError {
+      #expect(error == .rateLimited(retryAfter: 7, message: "slow down"))
+      #expect(error.text == "Notion unavailable")
+      #expect(!error.isPermanent)
     } catch {
       Issue.record("Unexpected \(error)")
     }
@@ -238,5 +253,112 @@ private final class HeaderSpy: URLProtocol, @unchecked Sendable {
 
   @Test func rejectsGarbage() {
     #expect(NotionDate.parse("yesterday") == nil)
+  }
+}
+
+// MARK: Commit queue
+
+private let saved = Date(timeIntervalSince1970: 1_791_779_400)
+
+private func pending(attempts: Int = 0, schema: NotionSchema? = schema) -> PendingCommit {
+  PendingCommit(
+    title: "drill 12", cardIDs: ["c1"], interval: DateInterval(start: saved, duration: 1500),
+    dataSourceID: "aaaa", schema: schema, attempts: attempts)
+}
+
+@MainActor
+private func queue(
+  _ commits: [PendingCommit], _ handler: @escaping (NotionStub.Call) throws -> (Int, String)
+) -> CommitQueue {
+  let queue = CommitQueue(commits: commits, session: NotionStub.session(handler), store: { _ in })
+  queue.apiKey = { "test-key" }
+  queue.now = { saved }
+  return queue
+}
+
+/// The queue shares the stub, so its tests join this serialized suite.
+extension NotionClientTests {
+  @Test @MainActor func aQueuedCommitLandsAndLeavesTheQueue() async {
+    let queue = queue([pending()]) { _ in (200, #"{"object": "page", "id": "new"}"#) }
+    var sent = 0
+    queue.onSent = { sent += 1 }
+    await queue.sendDue()
+    #expect(queue.commits.isEmpty)
+    #expect(sent == 1)
+    #expect(NotionStub.calls.map(\.path) == ["/v1/pages"])
+  }
+
+  @Test @MainActor func aServerErrorRetriesAfterThirtySeconds() async throws {
+    let queue = queue([pending()]) { _ in (503, #"{"object": "error", "message": "busy"}"#) }
+    await queue.sendDue()
+    let commit = try #require(queue.commits.first)
+    #expect(commit.attempts == 1)
+    #expect(commit.failure == nil)
+    #expect(commit.nextAttempt == saved.addingTimeInterval(30))
+    #expect(queue.badge(commit.id) == .queued)
+    #expect(queue.hasWaiting)
+  }
+
+  @Test @MainActor func aRateLimitWaitsForRetryAfter() async throws {
+    let queue = queue([pending()]) { _ in (429, #"{"object": "error", "message": "slow"}"#) }
+    NotionStub.headers = ["Retry-After": "7"]
+    await queue.sendDue()
+    let commit = try #require(queue.commits.first)
+    #expect(commit.nextAttempt == saved.addingTimeInterval(7))
+  }
+
+  @Test @MainActor func aCommitIsNotSentBeforeItIsDue() async {
+    var waiting = pending(attempts: 1)
+    waiting.nextAttempt = saved.addingTimeInterval(30)
+    let queue = queue([waiting]) { _ in (200, "{}") }
+    await queue.sendDue()
+    #expect(NotionStub.calls.isEmpty)
+    #expect(queue.commits.count == 1)
+  }
+
+  @Test @MainActor func aRejectedRowStopsRetrying() async throws {
+    let queue = queue([pending()]) { _ in (400, #"{"object": "error", "message": "bad"}"#) }
+    await queue.sendDue()
+    let commit = try #require(queue.firstFailure)
+    #expect(commit.failure?.text == "Notion rejected the row")
+    #expect(queue.badge(commit.id) == .failed)
+    queue.retryNow()
+    await queue.sendDue()
+    #expect(NotionStub.calls.count == 1)
+  }
+
+  @Test @MainActor func aRetryFindsTheRowAndSkipsTheCreate() async {
+    let row = sessionPage(
+      "p1", start: "2026-10-12T04:30:00.000Z", end: "2026-10-12T04:55:00.000Z", cards: ["c1"])
+    let queue = queue([pending(attempts: 1)]) { call in
+      if call.path == "/v1/pages" { Issue.record("Created a duplicate") }
+      return (200, list([row], next: nil))
+    }
+    await queue.sendDue()
+    #expect(queue.commits.isEmpty)
+    #expect(NotionStub.calls.map(\.path) == ["/v1/data_sources/aaaa/query"])
+  }
+
+  @Test @MainActor func aRetryWithoutAMatchCreatesTheRow() async {
+    let queue = queue([pending(attempts: 1)]) { call in
+      call.path == "/v1/pages"
+        ? (200, #"{"object": "page", "id": "new"}"#) : (200, list([], next: nil))
+    }
+    await queue.sendDue()
+    #expect(queue.commits.isEmpty)
+    #expect(NotionStub.calls.map(\.path) == ["/v1/data_sources/aaaa/query", "/v1/pages"])
+  }
+
+  @Test @MainActor func aSaveBeforeDiscoveryResolvesTheSchemaFirst() async {
+    let queue = queue([pending(schema: nil)]) { call in
+      switch call.path {
+      case "/v1/data_sources/aaaa": (200, sessionsSource)
+      case "/v1/data_sources/cccc": (200, cardsSource)
+      default: (200, #"{"object": "page", "id": "new"}"#)
+      }
+    }
+    await queue.sendDue()
+    #expect(queue.commits.isEmpty)
+    #expect(NotionStub.calls.last?.path == "/v1/pages")
   }
 }

@@ -10,10 +10,13 @@ final class NotionStub: URLProtocol, @unchecked Sendable {
 
   nonisolated(unsafe) static var handler: (Call) throws -> (Int, String) = { _ in (500, "{}") }
   nonisolated(unsafe) static var calls: [Call] = []
+  /// Response headers for every call. `session(_:)` clears them.
+  nonisolated(unsafe) static var headers: [String: String] = [:]
 
   static func session(_ handler: @escaping (Call) throws -> (Int, String)) -> URLSession {
     self.handler = handler
     calls = []
+    headers = [:]
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [NotionStub.self]
     return URLSession(configuration: configuration)
@@ -34,7 +37,7 @@ final class NotionStub: URLProtocol, @unchecked Sendable {
     do {
       let (status, json) = try Self.handler(call)
       let response = HTTPURLResponse(
-        url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
+        url: request.url!, statusCode: status, httpVersion: nil, headerFields: Self.headers)!
       client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
       client?.urlProtocol(self, didLoad: Data(json.utf8))
       client?.urlProtocolDidFinishLoading(self)

@@ -20,6 +20,11 @@ struct StatsView: View {
           }
         }
       }
+      if let commit = model.queue.firstFailure {
+        FailedCommitBanner(model: model, commit: commit)
+          .padding(.horizontal, 14)
+          .padding(.bottom, 8)
+      }
       if let stats {
         content(stats)
       } else if let failure = model.statsFailure {
@@ -44,7 +49,7 @@ struct StatsView: View {
           }
           Divider()
           VStack(spacing: 12) {
-            ForEach(stats.rows) { StatRow(row: $0) }
+            ForEach(stats.rows) { StatRow(row: $0, badge: model.badge(forRow: $0.id)) }
           }
         }
       }
@@ -73,6 +78,7 @@ private struct CardTotalRow: View {
 
 private struct StatRow: View {
   let row: DayStats.Row
+  let badge: CommitQueue.Badge?
 
   var body: some View {
     HStack(spacing: 10) {
@@ -86,6 +92,7 @@ private struct StatRow: View {
         .lineLimit(1)
       }
       Spacer(minLength: 4)
+      if let badge { SyncBadge(badge: badge) }
       Text(hoursMinutes(row.seconds)).font(.callout).monospacedDigit()
     }
   }

@@ -1,7 +1,7 @@
 import Foundation
 
 /// The resolved property IDs of the sessions and cards data sources. IDs survive renames in Notion.
-struct NotionSchema: Equatable, Sendable {
+struct NotionSchema: Codable, Equatable, Sendable {
   var sessionsID: String
   var sessionsName: String
   var titleID: String
@@ -30,6 +30,8 @@ struct CardRow: Equatable, Sendable {
 enum NotionError: Error, Equatable {
   case offline(String)
   case http(status: Int, message: String)
+  /// A 429. Notion sends `Retry-After` in seconds.
+  case rateLimited(retryAfter: TimeInterval?, message: String)
   case missingProperty(String)
   case badID
   case unreadable(String)
@@ -40,7 +42,7 @@ enum NotionError: Error, Equatable {
     case .offline: "Offline"
     case .http(401, _): "Key rejected"
     case .http(403, _), .http(404, _): "Database not shared"
-    case .http(429, _), .http(500..., _): "Notion unavailable"
+    case .rateLimited, .http(500..., _): "Notion unavailable"
     case .http: "Notion rejected the row"
     case .missingProperty: "Database missing a property"
     case .badID: "Not a data source ID"
@@ -53,8 +55,21 @@ enum NotionError: Error, Equatable {
     switch self {
     case .offline(let message), .missingProperty(let message), .unreadable(let message): message
     case .http(let status, let message): "\(status): \(message)"
+    case .rateLimited(_, let message): "429: \(message)"
     case .badID: "A data source ID holds only hex digits and dashes."
     }
+  }
+
+  /// Retrying cannot fix these. The owner sees Retry and Discard instead.
+  var isPermanent: Bool {
+    switch self {
+    case .http(400, _), .http(401, _), .http(403, _), .http(404, _), .missingProperty, .badID: true
+    default: false
+    }
+  }
+
+  var retryAfter: TimeInterval? {
+    if case .rateLimited(let seconds, _) = self { seconds } else { nil }
   }
 }
 
@@ -180,9 +195,14 @@ struct NotionClient: Sendable {
     } catch let error as URLError {
       throw NotionError.offline(error.localizedDescription)
     }
-    let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+    let http = response as? HTTPURLResponse
+    let status = http?.statusCode ?? 0
     guard (200..<300).contains(status) else {
       let message = (try? Self.decoder.decode(ErrorBody.self, from: data))?.message ?? ""
+      if status == 429 {
+        let seconds = http?.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+        throw NotionError.rateLimited(retryAfter: seconds, message: message)
+      }
       throw NotionError.http(status: status, message: message)
     }
     do {

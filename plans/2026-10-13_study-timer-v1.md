@@ -345,6 +345,7 @@ Behavior:
 - 400, 401, 403, and 404 errors are permanent. The UI shows the error with Retry and Discard.
 - Before any retry, look for an existing row with the same title and a start within ±60 s. A
   match marks the commit as done.
+- A commit saved before schema discovery finished resolves the schema before its first request.
 
 ### Settings
 

@@ -32,6 +32,11 @@ struct Footer: View {
           Image(systemName: "chart.bar.fill").foregroundStyle(.tint)
           if let stats = model.stats(at: .now) {
             Text(hoursMinutes(stats.total)).fontWeight(.semibold).monospacedDigit()
+            if model.queue.firstFailure != nil {
+              SyncBadge(badge: .failed)
+            } else if model.queue.hasWaiting {
+              SyncBadge(badge: .queued)
+            }
           } else if model.statsFailure != nil {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
           } else {

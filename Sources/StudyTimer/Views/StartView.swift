@@ -11,6 +11,9 @@ struct StartView: View {
   var body: some View {
     VStack(spacing: 0) {
       VStack(spacing: 10) {
+        if let commit = model.queue.firstFailure {
+          FailedCommitBanner(model: model, commit: commit)
+        }
         SearchField(
           text: $model.search,
           prompt: "Search cards",

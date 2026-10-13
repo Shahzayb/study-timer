@@ -115,3 +115,58 @@ extension SubHeader where Trailing == EmptyView {
     self.init(title: title, back: back) { EmptyView() }
   }
 }
+
+/// The oldest commit that failed for good, on Start and Stats. Retry shows a spinner while it runs.
+struct FailedCommitBanner: View {
+  @Bindable var model: AppModel
+  let commit: PendingCommit
+
+  var body: some View {
+    let failure = commit.failure ?? Failure(text: "Not saved", detail: "")
+    HStack(spacing: 8) {
+      Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+      VStack(alignment: .leading, spacing: 1) {
+        Text("\"\(commit.title)\" not saved").font(.callout.weight(.medium)).lineLimit(1)
+        Text(failure.text).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+      }
+      .help(failure.detail)
+      Spacer(minLength: 4)
+      if model.queue.badge(commit.id) == .sending {
+        ProgressView().controlSize(.small).frame(width: 28, height: 28)
+      } else {
+        IconButton(symbol: "arrow.clockwise", label: "Retry") { model.queue.retry(commit.id) }
+      }
+      if model.armed == .commit(commit.id) {
+        Button("Discard", role: .destructive) { model.discardPressed(.commit(commit.id)) }
+          .buttonStyle(.borderedProminent)
+          .tint(.red)
+          .controlSize(.small)
+          .help("Press again to discard")
+      } else {
+        IconButton(symbol: "xmark", label: "Discard") {
+          model.discardPressed(.commit(commit.id))
+        }
+      }
+    }
+    .padding(.leading, 10)
+    .padding(.trailing, 4)
+    .padding(.vertical, 6)
+    .background(RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.12)))
+  }
+}
+
+/// The sync state of a queued row: sending, waiting for a retry, or failed for good.
+struct SyncBadge: View {
+  let badge: CommitQueue.Badge
+
+  var body: some View {
+    switch badge {
+    case .sending:
+      ProgressView().controlSize(.mini).help("Saving to Notion")
+    case .queued:
+      Image(systemName: "icloud.slash").foregroundStyle(.orange).help("Not in Notion yet")
+    case .failed:
+      Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red).help("Not saved")
+    }
+  }
+}

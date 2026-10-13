@@ -2,7 +2,7 @@ import AppKit
 import Observation
 
 /// One short line for the UI, with the full message for a tooltip.
-struct Failure: Equatable {
+struct Failure: Codable, Equatable, Sendable {
   var text: String
   var detail: String
   var isOffline = false
@@ -27,10 +27,10 @@ final class AppModel {
   enum Screen { case connect, start, active, finish, stats, settings }
   enum Mode: String { case stopwatch, countdown }
 
-  enum CommitState: Equatable {
-    case idle
-    case saving
-    case failed(Failure)
+  /// What an armed Discard removes: the session on Finish, or a failed commit in the banner.
+  enum DiscardTarget: Equatable {
+    case session
+    case commit(UUID)
   }
 
   /// The last schema discovery, shown on Connect and in Settings.
@@ -81,8 +81,8 @@ final class AppModel {
   private(set) var session: ActiveSession? {
     didSet { Persistence.save(session) }
   }
-  private(set) var commitState = CommitState.idle
-  private(set) var discardArmed = false
+  /// The first Discard press arms it for 3 s. A second press discards.
+  private(set) var armed: DiscardTarget?
   private(set) var ringing = false
 
   /// The Start form. The title follows the suggestion until the owner edits it.
@@ -104,6 +104,7 @@ final class AppModel {
 
   @ObservationIgnored var closePopover: () -> Void = {}
   @ObservationIgnored let alarm = Alarm()
+  let queue = CommitQueue(commits: Persistence.loadQueue(), store: Persistence.saveQueue)
   /// The segment that already rang, so a ring that was muted stays muted.
   @ObservationIgnored private var rangSegment: Date?
   @ObservationIgnored private var titleEdited = false
@@ -136,12 +137,34 @@ final class AppModel {
     minutes = savedMinutes
     let typed = savedMode == .countdown && !Self.presets.contains(savedMinutes)
     customMinutes = typed ? "\(savedMinutes)" : ""
+    queue.apiKey = { [weak self] in self?.apiKey }
+    queue.onSent = { [weak self] in self?.refresh(force: true) }
   }
 
   var refreshing: Bool { loadingSessions || loadingCards || check == .checking }
 
+  /// Queued commits count until a fetched row matches them.
   func stats(at now: Date) -> DayStats? {
-    sessions.map { DayStats(sessions: $0, cards: cards ?? [], now: now) }
+    guard let sessions else { return nil }
+    let pending = queue.commits.filter { commit in
+      commit.dataSourceID == dataSourceID && !sessions.contains(where: commit.matches)
+    }
+    let rows = pending.map {
+      SessionRow(
+        id: Self.queuedRowPrefix + $0.id.uuidString, title: $0.title, start: $0.interval.start,
+        end: $0.interval.end, cardIDs: $0.cardIDs)
+    }
+    return DayStats(sessions: sessions + rows, cards: cards ?? [], now: now)
+  }
+
+  private static let queuedRowPrefix = "queued:"
+
+  /// The sync badge of a stats row. Rows fetched from Notion have none.
+  func badge(forRow id: String) -> CommitQueue.Badge? {
+    guard id.hasPrefix(Self.queuedRowPrefix),
+      let uuid = UUID(uuidString: String(id.dropFirst(Self.queuedRowPrefix.count)))
+    else { return nil }
+    return queue.badge(uuid)
   }
 
   /// Why stats cannot load: the last query failed, or discovery did.
@@ -194,6 +217,7 @@ final class AppModel {
   }
 
   func popoverWillOpen() {
+    queue.retryNow()
     if screen == .start {
       focusToken += 1
       if !visibleCards.contains(where: { $0.id == highlightID }) { highlightID = firstMatchID }
@@ -472,8 +496,8 @@ final class AppModel {
 
   /// A click on the alarm banner shows Active.
   func showActive() {
-    guard session != nil, commitState != .saving else { return }
-    discardArmed = false
+    guard session != nil else { return }
+    armed = nil
     screen = .active
   }
 
@@ -490,56 +514,49 @@ final class AppModel {
 
   func openFinish() {
     mute()
-    commitState = .idle
-    discardArmed = false
+    armed = nil
     screen = .finish
   }
 
   private func backToActive() {
-    guard commitState != .saving else { return }
-    discardArmed = false
+    armed = nil
     screen = .active
   }
 
-  /// The first press arms Discard for 3 s. A second press discards.
-  func discardPressed() {
-    guard discardArmed else {
-      discardArmed = true
+  func discardPressed(_ target: DiscardTarget) {
+    guard armed == target else {
+      armed = target
       discardGeneration += 1
       let generation = discardGeneration
       Task {
         try? await Task.sleep(for: .seconds(3))
-        if generation == discardGeneration { discardArmed = false }
+        if generation == discardGeneration { armed = nil }
       }
       return
     }
-    endSession()
+    armed = nil
+    switch target {
+    case .session: endSession()
+    case .commit(let id): queue.discard(id)
+    }
   }
 
-  /// Sends the row now. A failure keeps the session on Finish. See plans/2026-10-13_study-timer-v1.md step 7.
+  /// Queues the row and shows Start at once. The queue keeps trying until Notion has it.
   func save(plannedOnly: Bool) {
-    guard commitState != .saving, let session, let schema, let apiKey,
-      let interval = session.commitInterval(at: Date(), plannedOnly: plannedOnly)
+    guard let session, let interval = session.commitInterval(at: Date(), plannedOnly: plannedOnly)
     else { return }
-    commitState = .saving
-    Task {
-      do {
-        try await NotionClient(apiKey: apiKey).createSession(
-          schema, title: session.title, interval: interval, cardIDs: session.cardIDs)
-        endSession()
-        refresh(force: true)
-      } catch {
-        commitState = .failed(Failure(error))
-      }
-    }
+    queue.add(
+      PendingCommit(
+        title: session.title, cardIDs: session.cardIDs, interval: interval,
+        dataSourceID: dataSourceID, schema: schema?.sessionsID == dataSourceID ? schema : nil))
+    endSession()
   }
 
   private func endSession() {
     mute()
     alarm.cancel()
     session = nil
-    commitState = .idle
-    discardArmed = false
+    armed = nil
     screen = .start
     focusToken += 1
   }
