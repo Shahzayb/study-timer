@@ -4,7 +4,7 @@
 
 The owner approved plan v1 in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md) on 2026-10-13. Work
-runs on branch `feat/study-timer-v1`. Implementation steps 1 to 5 are done. The app connects to
+runs on branch `feat/study-timer-v1`. Implementation steps 1 to 6 are done. The app connects to
 the `Study Timer Test` database.
 
 The throwaway UI prototype lives outside the repo in `~/Programming/study-timer-prototype`. It is
@@ -12,14 +12,13 @@ installed as `~/Applications/Study Timer Prototype.app`. `shots/` holds a render
 
 ## Next action
 
-1. Claude implements step 6: alarm, notifications, and sleep pause.
+1. Claude implements step 7: `CommitQueue` with retry, backoff, and duplicate check.
 
 ## Validation gaps
 
 - Whether a write to the live two-way relation needs the Update content capability is unverified.
   The test database's one-way relation cannot show it. Verification step 9 will.
 - `SMAppService.mainApp` registration is unverified for an ad-hoc signed app in `~/Applications`.
-- Notification permission prompts are unverified for an ad-hoc signed app.
 - `RegisterEventHotKey` accepts ⌃⌥S, and the hotkey toggles the app popover. Apps that read keys
   through event taps can still collide. The owner has not confirmed that none do.
 

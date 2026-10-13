@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Implementation steps 1 to 5 are built. The rest is decided but not built. The full spec is in
+Implementation steps 1 to 6 are built. The rest is decided but not built. The full spec is in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md).
 
 - The app is a SwiftPM package in Swift 6.4 with strict concurrency. UI state runs on
@@ -23,8 +23,8 @@ Implementation steps 1 to 5 are built. The rest is decided but not built. The fu
   the nearest minute. Pauses move the start later.
 - `end` is the commit moment floored to the minute. When paused, `end` is the pause moment.
   "Commit without overtime" uses the moment elapsed time reached the target.
-- `NSWorkspace.willSleepNotification` pauses the timer. The timer stays paused after wake. Screen
-  lock MUST NOT pause it.
+- System sleep and screen lock pause the timer, because both mean the owner is away. The timer
+  stays paused after wake or unlock.
 
 ## External contracts
 
@@ -95,6 +95,11 @@ Implementation steps 1 to 5 are built. The rest is decided but not built. The fu
   `-plugin-path /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing` through
   `.unsafeFlags` in its `swiftSettings`. Without it, `@Test` fails to expand.
   `--build-system native` cannot find the `Testing` module.
+- Claude cannot hear the alarm or see notification banners, because screenshots hide Notification
+  Center. `/usr/bin/log show` reveals both: `audiomxd` logs the app's audio session going active
+  and inactive, and `usernoted` logs each delivery. In zsh, plain `log` is a shell builtin.
+- Banners appear only after the owner clicks Allow on the first permission prompt. Claude cannot
+  unlock the screen or wake the Mac, so lock and sleep checks are the owner's.
 - Claude's shell has no Screen Recording permission, so `screencapture` fails. To render a view
   to PNG in-process, use `CALayer.render(in:)`. `NSView.cacheDisplay` drops SwiftUI content.
   Neither renders window materials.
