@@ -52,7 +52,7 @@ All eight implementation steps are built. The full spec is in
 - Notion date strings arrive in three forms: with milliseconds, without them, or date-only. The
   offset is `Z` or `+00:00`. The parser MUST handle every form.
 - How date filters treat range ends is unverified. The app queries a 90-day window by start date.
-  It computes the 24-hour overlap locally.
+  It computes the overlap with today locally.
 - A create request that times out may still succeed. Before a retry, the app MUST look for a row
   with the same title and a start within ±60 s.
 
