@@ -25,10 +25,10 @@ struct ConnectView: View {
         .disabled(checking)
         .padding(.top, 24)
       Group {
-        if case .failed(let message, let detail) = model.check {
-          Label(message, systemImage: "xmark.circle.fill")
+        if case .failed(let failure) = model.check {
+          Label(failure.text, systemImage: "xmark.circle.fill")
             .foregroundStyle(.red)
-            .help(detail)
+            .help(failure.detail)
         } else {
           Text(" ")
         }

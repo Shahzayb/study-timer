@@ -55,6 +55,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
 
   private func show() {
     guard let button = statusItem.button else { return }
+    model.popoverWillOpen()
     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     // A status item click cannot activate the app, so the popover takes the keyboard as a non-activating panel.
     let window = popover.contentViewController?.view.window

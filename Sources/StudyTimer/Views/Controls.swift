@@ -51,3 +51,23 @@ struct SubHeader<Trailing: View>: View {
     .frame(height: 44)
   }
 }
+
+/// A load that failed with nothing to show: an icon, the error line, and Retry.
+struct FailureView: View {
+  let failure: Failure
+  let retry: () -> Void
+
+  var body: some View {
+    VStack(spacing: 10) {
+      Image(systemName: failure.isOffline ? "wifi.exclamationmark" : "exclamationmark.triangle")
+        .font(.system(size: 30))
+        .foregroundStyle(.secondary)
+      Text(failure.text)
+        .font(.callout.weight(.medium))
+        .foregroundStyle(.secondary)
+        .help(failure.detail)
+      Button("Retry", action: retry)
+    }
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+  }
+}

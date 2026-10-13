@@ -10,7 +10,7 @@ struct SettingsView: View {
   var body: some View {
     VStack(spacing: 0) {
       SubHeader(title: "Settings") {
-        model.closeSettings()
+        _ = model.goBack()
       } trailing: {
         IconButton(symbol: "power", label: "Quit Study Timer") { NSApp.terminate(nil) }
       }
@@ -77,10 +77,10 @@ private struct CheckRow: View {
       } icon: {
         Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
       }
-    case .failed(let message, let detail):
-      Label(message, systemImage: "xmark.circle.fill")
+    case .failed(let failure):
+      Label(failure.text, systemImage: "xmark.circle.fill")
         .foregroundStyle(.red)
-        .help(detail)
+        .help(failure.detail)
     }
   }
 }
