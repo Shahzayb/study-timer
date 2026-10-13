@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Implementation steps 1 to 6 are built. The rest is decided but not built. The full spec is in
+Implementation steps 1 to 7 are built. The rest is decided but not built. The full spec is in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md).
 
 - The app is a SwiftPM package in Swift 6.4 with strict concurrency. UI state runs on
@@ -99,7 +99,9 @@ Implementation steps 1 to 6 are built. The rest is decided but not built. The fu
   Center. `/usr/bin/log show` reveals both: `audiomxd` logs the app's audio session going active
   and inactive, and `usernoted` logs each delivery. In zsh, plain `log` is a shell builtin.
 - Banners appear only after the owner clicks Allow on the first permission prompt. Claude cannot
-  unlock the screen or wake the Mac, so lock and sleep checks are the owner's.
+  unlock the screen, wake the Mac, or switch Wi-Fi, so lock, sleep, and offline checks are the
+  owner's. A hand-written `commit-queue.json`, written while the app is not running, can stage
+  duplicate and permanent-failure cases.
 - Claude's shell has no Screen Recording permission, so `screencapture` fails. To render a view
   to PNG in-process, use `CALayer.render(in:)`. `NSView.cacheDisplay` drops SwiftUI content.
   Neither renders window materials.
