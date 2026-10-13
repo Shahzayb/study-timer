@@ -16,7 +16,7 @@ set it up from the README. The owner's Notion IDs and email MUST NOT appear in a
 3. The README drops the `defaults write` step. The last step pastes the token and the ID.
 4. `memory-bank/techContext.md` drops the six Notion IDs and keeps the database names.
 5. Git history:
-   - Save a bundle of every ref to `~/Programming/study-timer-backup.bundle` first.
+   - Save a bundle of every ref outside the repo first.
    - Rewrite every commit. Replace each Notion ID with `<redacted>`. Replace the Gmail address
      with `29760858+Shahzayb@users.noreply.github.com` as author and committer.
    - Verify that no commit holds an ID or the Gmail address. Set the no-reply address as the

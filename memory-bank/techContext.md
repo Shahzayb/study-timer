@@ -8,7 +8,7 @@ All eight implementation steps are built. The full spec is in
 - The app is a SwiftPM package in Swift 6.4 with strict concurrency. UI state runs on
   `@MainActor`. It has no third-party dependencies.
 - The shell script `build.sh` assembles the `.app` bundle (`LSUIElement`) and ad-hoc signs it.
-  The owner accepts shell for build scripts in this repo.
+  Build scripts MAY use shell.
 - The menu bar uses an AppKit `NSStatusItem` with an `NSPopover` that hosts SwiftUI. The popover
   window is a non-activating panel, so it takes the keyboard while the previous app stays active.
 - The app MUST NOT use `MenuBarExtra`. `MenuBarExtra` cannot be opened programmatically, and the
@@ -23,7 +23,7 @@ All eight implementation steps are built. The full spec is in
   the nearest minute. Pauses move the start later.
 - `end` is the commit moment floored to the minute. When paused, `end` is the pause moment.
   "Commit without overtime" uses the moment elapsed time reached the target.
-- System sleep and screen lock pause the timer, because both mean the owner is away. The timer
+- System sleep and screen lock pause the timer, because both mean the user is away. The timer
   stays paused after wake or unlock.
 
 ## External contracts
@@ -33,28 +33,20 @@ All eight implementation steps are built. The full spec is in
 - `POST /v1/pages` creates a row with `parent: {type: "data_source_id", data_source_id}`.
 - A relation schema exposes `data_source_id`. Relation schema writes accept `data_source_id` only.
   A page's relation value is a list of page IDs.
-- The sessions database is `📚 Daily Study Stats`. The installed app stores its data source ID
-  under the `dataSourceID` default.
-- Sessions have `Title` (title), `Interval` (datetime range), a relation to cards, and formulas
-  `Minutes` and `Hours`. The relation is named
-  `My Learning Path: Organizing and Achieving Study Goals!`.
+- The sessions data source has exactly one title, one date, and one relation property. The
+  relation points to the cards data source. The app stores the sessions data source ID under the
+  `dataSourceID` default.
 - The app MUST resolve the title, date, and relation properties by type. Name lookups break when
-  the owner renames a property.
-- The cards database is `My Learning Path`. Discovery reads its data source ID from the relation.
-- Cards have `Name` (title) and two selects, `Status` and `Priority`. Two selects rule out a type
-  lookup. The app MUST find `Status` by name. Without it, ranking drops the "Doing" tie-break. The
-  status options are Doing, Done 🙌, Gave Up, Backlog, and On Hold.
-- The cards self-relation `Relations` links umbrella cards and child cards. The rollup
-  `Time Spent (hours)` sums each card's session `Hours`.
-- The session-to-card relation is two-way. Cards show it as `📚 Daily Study Stats`.
-- Manual testing writes to a separate `Study Timer Test` database. It has `Title` (title),
-  `Interval` (date), and `Cards`, a one-way relation to cards, so the cards schema stays unchanged.
-  The owner copies its data source ID from Notion when a checkpoint needs it. Its test rows from
-  2026-10-12 and 2026-10-13 link only to `English Speaking` and `German A1`. They raise those cards
-  in the ranking.
-- All three databases are top-level pages. The integration MUST be connected to each one. Nothing
-  inherits access. The owner's integration has Read content and Insert content and is connected to
-  all three. Insert content is enough to write the live two-way relation.
+  a property is renamed.
+- Cards have a title and MAY have several selects, which rules out a type lookup. The app MUST
+  find `Status` by name, as a select or a status property. Without it, ranking drops the "Doing"
+  tie-break.
+- Insert content is enough to write a two-way relation.
+- Manual testing SHOULD write to a separate test database with a title, a date, and a one-way
+  relation to the cards, so the cards schema stays unchanged. Test rows still raise their cards in
+  the ranking.
+- An internal integration reaches only the top-level pages it is connected to. Nothing inherits
+  access. A personal access token reaches every page its user can open.
 - Notion stores date-times to the minute and drops the seconds. Every interval the app writes
   MUST use whole minutes, or the stored duration drifts by up to a minute.
 - Notion date strings arrive in three forms: with milliseconds, without them, or date-only. The
@@ -66,23 +58,21 @@ All eight implementation steps are built. The full spec is in
 
 ## Constraints
 
-- The repo is public on GitHub as `Shahzayb/study-timer`. It MUST NOT hold Notion IDs or the
-  owner's Gmail address. Commits use `29760858+Shahzayb@users.noreply.github.com`.
-- The Notion API key lives only in the macOS Keychain.
+- The repo is public. It MUST NOT hold Notion IDs, tokens, email addresses, local paths, or other
+  personal data.
+- The Notion token lives only in the macOS Keychain.
 - Ad-hoc signing changes the code signature on every rebuild. A rebuilt app still reads its Keychain
   item without a prompt, so rebuilding during a checkpoint is safe. `SMAppService.mainApp`
   registers the app without an approval prompt, and the login item stays enabled across rebuilds.
 - macOS 27 draws status items in the Window Server. A status item click cannot activate the app.
   `NSApp.activate()` works from the Carbon hotkey only.
-- Computer use MUST NOT put live Notion data on screen. The permission system blocks it. Checkpoints
-  use rows in `Study Timer Test`.
+- Computer use MUST NOT put live Notion data on screen. Checkpoints use the test database.
 - An accessory app has no menu bar. Text fields get ⌘V, ⌘C, ⌘A, and ⌘Z only from the Edit menu the
   app sets as `NSApp.mainMenu`.
 
 ## Environment
 
-- The Mac runs macOS 27.0.1 with Command Line Tools only. Xcode is not installed. `xcodebuild` is
-  unavailable.
+- The project builds with Command Line Tools only. It MUST NOT need Xcode or `xcodebuild`.
 - The toolchain is Swift 6.4 with the macOS 27 SDK. Observation macros, Swift Testing, and
   `swift format` are available.
 - Code MUST NOT use `#Preview`. Its macro plugin ships only with Xcode.
@@ -98,11 +88,11 @@ All eight implementation steps are built. The full spec is in
 - Claude cannot hear the alarm or see notification banners, because screenshots hide Notification
   Center. `/usr/bin/log show` reveals both: `audiomxd` logs the app's audio session going active
   and inactive, and `usernoted` logs each delivery. In zsh, plain `log` is a shell builtin.
-- Banners appear only after the owner clicks Allow on the first permission prompt. Claude cannot
-  unlock the screen, wake the Mac, or switch Wi-Fi, so lock, sleep, and offline checks are the
-  owner's. A hand-written `commit-queue.json`, written while the app is not running, can stage
+- Banners appear only after the user clicks Allow on the first permission prompt. Claude cannot
+  unlock the screen, wake the Mac, or switch Wi-Fi, so a person runs the lock, sleep, and offline
+  checks. A hand-written `commit-queue.json`, written while the app is not running, can stage
   duplicate and permanent-failure cases.
-- Claude's shell has no Screen Recording permission, so `screencapture` fails. To render a view
+- Without Screen Recording permission, `screencapture` fails in Claude's shell. To render a view
   to PNG in-process, use `CALayer.render(in:)`. `NSView.cacheDisplay` drops SwiftUI content.
   Neither renders window materials.
 - An in-process capture MUST NOT activate the app. Keystrokes typed during the capture land in
@@ -115,8 +105,7 @@ All eight implementation steps are built. The full spec is in
   real screenshots. A debug hotkey that steps through mock states lets one batch capture every
   state.
 - macOS 27 shows a full-bleed rounded-square `.icns` with a glass edge and no gray backing tile.
-- The Mac has no code-signing identities. Builds use ad-hoc signing.
-- The installed prototype also registers ⌃⌥S. It MUST NOT run while the app is under test.
+- Builds use ad-hoc signing, so they need no signing identity.
 
 ## Commands
 
