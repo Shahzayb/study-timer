@@ -147,19 +147,21 @@ private struct CardRowView: View {
 private struct DurationPicker: View {
   @Bindable var model: AppModel
 
-  /// 0 is the stopwatch. -1 is a typed length, which leaves every segment unselected.
-  private var choice: Binding<Int> {
+  /// Segment 0 is the stopwatch, then one per preset. -1 is a typed length, which selects no segment.
+  private var segment: Binding<Int> {
     Binding(
       get: {
         if model.mode == .stopwatch { return 0 }
-        return model.customMinutes.isEmpty && AppModel.presets.contains(model.minutes)
-          ? model.minutes : -1
+        guard model.customMinutes.isEmpty,
+          let index = AppModel.presets.firstIndex(of: model.minutes)
+        else { return -1 }
+        return index + 1
       },
-      set: { value in
-        if value == 0 {
+      set: { index in
+        if index == 0 {
           model.pick(stopwatch: true)
-        } else if value > 0 {
-          model.pick(stopwatch: false, minutes: value)
+        } else if AppModel.presets.indices.contains(index - 1) {
+          model.pick(stopwatch: false, minutes: AppModel.presets[index - 1])
         }
       }
     )
@@ -167,13 +169,7 @@ private struct DurationPicker: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      Picker("Length", selection: choice) {
-        Image(systemName: "stopwatch").tag(0)
-        ForEach(AppModel.presets, id: \.self) { Text("\($0)").tag($0) }
-      }
-      .pickerStyle(.segmented)
-      .labelsHidden()
-      .frame(maxWidth: .infinity)
+      FilledSegments(labels: [""] + AppModel.presets.map { "\($0)" }, selection: segment)
       TextField(
         "Minutes",
         text: Binding(get: { model.customMinutes }, set: { model.editCustomMinutes($0) }),
@@ -198,6 +194,44 @@ private struct DurationPicker: View {
       }
       .opacity(0)
       .accessibilityHidden(true)
+    }
+  }
+}
+
+/// An `NSSegmentedControl` with equal segments across the row. A SwiftUI segmented picker keeps its natural width.
+private struct FilledSegments: NSViewRepresentable {
+  /// The first segment shows the stopwatch symbol instead of its label.
+  let labels: [String]
+  @Binding var selection: Int
+
+  func makeNSView(context: Context) -> NSSegmentedControl {
+    let control = NSSegmentedControl(
+      labels: labels, trackingMode: .selectOne, target: context.coordinator,
+      action: #selector(Coordinator.changed(_:)))
+    control.setImage(
+      NSImage(systemSymbolName: "stopwatch", accessibilityDescription: "Stopwatch"), forSegment: 0)
+    control.segmentDistribution = .fillEqually
+    control.controlSize = .large
+    control.setContentHuggingPriority(.defaultLow, for: .horizontal)
+    control.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+    return control
+  }
+
+  func updateNSView(_ control: NSSegmentedControl, context: Context) {
+    context.coordinator.selection = $selection
+    control.selectedSegment = selection
+  }
+
+  func makeCoordinator() -> Coordinator { Coordinator(selection: $selection) }
+
+  @MainActor
+  final class Coordinator: NSObject {
+    var selection: Binding<Int>
+
+    init(selection: Binding<Int>) { self.selection = selection }
+
+    @objc func changed(_ sender: NSSegmentedControl) {
+      selection.wrappedValue = sender.selectedSegment
     }
   }
 }
