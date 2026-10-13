@@ -71,6 +71,11 @@ Decided but not built. The full spec is in
 - The toolchain is Swift 6.4 with the macOS 27 SDK. Observation macros, Swift Testing, and
   `swift format` are available.
 - Code MUST NOT use `#Preview`. Its macro plugin ships only with Xcode.
+- The macOS 27 SDK declares `@State`, `@Entry`, and `@Animatable` as `SwiftUIMacros` macros. That
+  plugin ships only with Xcode, so code MUST NOT use them. Store view state as a plain property,
+  `private let hovering = State(initialValue: false)`, and use `hovering.wrappedValue`.
+- `swift format` runs with its defaults, including 2-space indentation. The repo has no
+  `.swift-format` file.
 - The default build system does not load the Swift Testing macro plugin. The test target MUST pass
   `-plugin-path /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing` through
   `.unsafeFlags` in its `swiftSettings`. Without it, `@Test` fails to expand.

@@ -8,6 +8,7 @@ Approval waits on its UI spec.
 
 The throwaway UI prototype lives outside the repo in `~/Programming/study-timer-prototype`. It is
 installed as `~/Applications/Study Timer Prototype.app`. `shots/` holds a render of every state.
+The prototype follows the minimal redesign the owner asked for on 2026-10-13.
 
 ## Next action
 
@@ -26,10 +27,4 @@ installed as `~/Applications/Study Timer Prototype.app`. `shots/` holds a render
 
 ## Open decisions
 
-- Default alarm sound from `/System/Library/Sounds`: _Not yet established._ Settings will let the
-  owner change it.
-- Whether Start requires at least one card: _Not yet established._ The prototype requires one.
-- Whether the real app gets a `--regular` launch argument for computer-use checkpoints:
-  _Not yet established._
-- `swift format` indentation (default 2 spaces, or 4 through a `.swift-format` file):
-  _Not yet established._
+None.

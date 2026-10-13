@@ -27,7 +27,13 @@ and commits one accurate row.
 ## Quality bar
 
 - The app MUST look like a native macOS menu bar extra. Use system controls, SF Symbols, the
-  system font, and system materials. Do not add a custom palette.
+  system font, and system materials.
+- The UI MUST be minimal and modern. Use little text, clear icons, and high contrast.
+- The popover MUST keep a fixed size of 340 × 400 pt. Long content scrolls inside it.
+- Controls and bars use the system accent color. Bars MUST be solid. Only the timer ring and the
+  app icon use the brand gradient of cyan, violet, and pink.
+- The app icon and the idle menu bar glyph MUST differ from system timer icons. Both use a ring
+  mark that is 80% filled.
 - Manual testing by Claude and the owner is the primary verification. Unit tests cover timing
   math, date parsing, ranking, and retry logic.
 
@@ -75,6 +81,7 @@ Implementation MUST NOT start before the owner approves this section.
   2. The first selected card's name.
   3. Empty.
 - A manual title edit MUST stop the default from overwriting it when the card selection changes.
+- Start requires at least one selected card.
 - Mode: stopwatch, or countdown. Countdown presets are 25, 45, 60, and 90 minutes. A custom
   minutes field is always available.
 - The app remembers the last mode and duration.
@@ -125,8 +132,7 @@ Implementation MUST NOT start before the owner approves this section.
 - Fields: API key (Keychain), sessions data source ID (prefilled from `techContext.md`), alarm
   sound, and launch at login.
 - Launch at login is on by default.
-- Alarm sound: a picker over `/System/Library/Sounds`. The default sound is an open decision in
-  `memory-bank/progress.md`. Ask the owner before building the alarm. Suggest `Glass`.
+- Alarm sound: a picker over `/System/Library/Sounds`. The default sound is `Glass`.
 
 ### Out of scope
 
@@ -139,8 +145,11 @@ Editing times, rounding, logging past sessions, and creating cards.
   bundle ID `dev.local.StudyTimer`, ad-hoc signs the app, and installs it to `~/Applications`.
   Manual testing MUST use the installed bundle. Notifications and the login item need a bundle,
   so `swift run` cannot exercise them.
-- **Menu bar:** an AppKit `NSStatusItem` with an `.transient` `NSPopover` that hosts SwiftUI. The
-  popover is about 360 pt wide.
+- **Menu bar:** an AppKit `NSStatusItem` with an `.transient` `NSPopover` that hosts SwiftUI.
+- **App icon:** a Swift script draws `AppIcon.icns` through `iconutil`. `build.sh` bundles it.
+  `actool` and Icon Composer need Xcode.
+- **Computer use:** the `--regular` launch argument sets a regular activation policy, so computer
+  use can list and target the app.
 - **Hotkey:** Carbon `RegisterEventHotKey` for ⌃⌥S.
 - **Notion:** `URLSession` with async/await and `Codable`. At launch the app resolves the title,
   date, and relation properties by type from `GET /v1/data_sources/{id}`. The cards data source
@@ -177,8 +186,9 @@ Work on branch `feat/study-timer-v1`. Commit after each step.
 
 A step marked **checkpoint** ends with a manual test before its commit:
 
-1. Claude installs with `build.sh`, drives the app with computer use, and screenshots each changed
-   state. Claude compares each screenshot with the UI spec.
+1. Claude installs with `build.sh` and launches the app with `--regular`. Claude drives it with
+   full-screen computer use and screenshots each changed state. Claude compares each screenshot
+   with the UI spec.
 2. The owner tries the same states.
 3. The step commits after the owner's OK.
 
