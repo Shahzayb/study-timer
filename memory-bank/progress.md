@@ -17,11 +17,7 @@ _Not yet established._ The owner picks the next task.
 
 ## Validation gaps
 
-- The offline save check is unconfirmed: save with Wi-Fi off, then turn it on. The row MUST appear
-  exactly once.
-- Opening at login is unverified until the owner logs out and back in.
-- `RegisterEventHotKey` accepts ⌃⌥S, and the hotkey toggles the app popover. Apps that read keys
-  through event taps can still collide. The owner has not confirmed that none do.
+None. The owner confirmed the offline save, opening at login, and the ⌃⌥S hotkey on 2026-10-13.
 
 ## Open decisions
 
