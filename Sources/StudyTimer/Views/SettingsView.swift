@@ -34,7 +34,14 @@ struct SettingsView: View {
             ForEach(AppModel.sounds, id: \.self) { Text($0) }
           }
           .onChange(of: model.alarmSound) { NSSound(named: model.alarmSound)?.play() }
-          Toggle("Open at login", isOn: $model.launchAtLogin)
+          Toggle(
+            "Open at login",
+            isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
+          if let failure = model.loginFailure {
+            Label(failure.text, systemImage: "xmark.circle.fill")
+              .foregroundStyle(.red)
+              .help(failure.detail)
+          }
         }
       }
       .formStyle(.grouped)

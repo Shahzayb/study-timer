@@ -1,5 +1,6 @@
 import AppKit
 import Observation
+import ServiceManagement
 
 /// One short line for the UI, with the full message for a tooltip.
 struct Failure: Codable, Equatable, Sendable {
@@ -73,9 +74,9 @@ final class AppModel {
   var alarmSound: String {
     didSet { defaults.set(alarmSound, forKey: "alarmSound") }
   }
-  var launchAtLogin: Bool {
-    didSet { defaults.set(launchAtLogin, forKey: "launchAtLogin") }
-  }
+  /// Mirrors the system login item, so a change in System Settings shows here too.
+  private(set) var launchAtLogin = false
+  private(set) var loginFailure: Failure?
 
   /// The session in progress. Every change goes to disk, so a quit or crash keeps it.
   private(set) var session: ActiveSession? {
@@ -130,7 +131,6 @@ final class AppModel {
     session = restored
     screen = key == nil ? .connect : restored == nil ? .start : .active
     alarmSound = defaults.string(forKey: "alarmSound") ?? "Glass"
-    launchAtLogin = defaults.object(forKey: "launchAtLogin") as? Bool ?? true
     let savedMode = Mode(rawValue: defaults.string(forKey: "mode") ?? "") ?? .countdown
     let savedMinutes = defaults.object(forKey: "minutes") as? Int ?? 45
     mode = savedMode
@@ -178,7 +178,47 @@ final class AppModel {
 
   func openStats() { open(.stats) }
 
-  func openSettings() { open(.settings) }
+  func openSettings() {
+    readLoginItem()
+    open(.settings)
+  }
+
+  /// Launch at login is on by default, so the first launch registers the app once.
+  func syncLoginItem() {
+    guard defaults.bool(forKey: "loginItemOffered") else {
+      defaults.set(true, forKey: "loginItemOffered")
+      return setLaunchAtLogin(true)
+    }
+    readLoginItem()
+  }
+
+  /// A failure leaves the toggle on the real state, which reverts it.
+  func setLaunchAtLogin(_ on: Bool) {
+    do {
+      if on {
+        try SMAppService.mainApp.register()
+      } else {
+        try SMAppService.mainApp.unregister()
+      }
+      readLoginItem()
+    } catch {
+      readLoginItem()
+      loginFailure = Failure(
+        text: on ? "Could not open at login" : "Could not stop opening at login",
+        detail: error.localizedDescription)
+    }
+  }
+
+  private func readLoginItem() {
+    let status = SMAppService.mainApp.status
+    launchAtLogin = status == .enabled || status == .requiresApproval
+    loginFailure =
+      status == .requiresApproval
+      ? Failure(
+        text: "Approve it in Login Items",
+        detail: "System Settings › General › Login Items › Study Timer")
+      : nil
+  }
 
   /// Leaves a sub-screen. Returns false on a root screen, where Esc closes the popover instead.
   func goBack() -> Bool {

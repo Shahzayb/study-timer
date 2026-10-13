@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     statusBar = StatusBarController(model: model)
     model.alarm.activate()
     model.queue.start()
+    model.syncLoginItem()
     // Sleep and screen lock mean the owner is away. The timer stays paused after wake or unlock.
     NSWorkspace.shared.notificationCenter.addObserver(
       forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
