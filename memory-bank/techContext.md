@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Implementation steps 1 to 7 are built. The rest is decided but not built. The full spec is in
+All eight implementation steps are built. The full spec is in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md).
 
 - The app is a SwiftPM package in Swift 6.4 with strict concurrency. UI state runs on
@@ -71,7 +71,8 @@ Implementation steps 1 to 7 are built. The rest is decided but not built. The fu
 
 - The Notion API key lives only in the macOS Keychain.
 - Ad-hoc signing changes the code signature on every rebuild. A rebuilt app still reads its Keychain
-  item without a prompt, so rebuilding during a checkpoint is safe.
+  item without a prompt, so rebuilding during a checkpoint is safe. `SMAppService.mainApp`
+  registers the app without an approval prompt, and the login item stays enabled across rebuilds.
 - macOS 27 draws status items in the Window Server. A status item click cannot activate the app.
   `NSApp.activate()` works from the Carbon hotkey only.
 - Computer use MUST NOT put live Notion data on screen. The permission system blocks it. Checkpoints
