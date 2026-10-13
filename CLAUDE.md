@@ -63,8 +63,9 @@ Once work finishes or a decision is made, `memory-bank/` is out of date. Update 
 
 ### Process
 
-- Run `swift format --in-place --recursive Sources Tests` and
-  `swift format lint --strict --recursive Sources Tests` before marking a task done.
+- Run `swift format --in-place --recursive Sources Tests make-icon.swift Package.swift` and
+  `swift format lint --strict --recursive Sources Tests make-icon.swift Package.swift` before
+  marking a task done.
 - Commits and PRs MUST NOT contain `Co-Authored-By` lines or any other watermark.
 - Commit each chunk of work as you go on any branch other than `main`.
 - Use conventional commit messages. The subject is imperative. Add a body only for a fact the
