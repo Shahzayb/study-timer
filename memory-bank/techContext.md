@@ -57,7 +57,7 @@ All eight implementation steps are built. The full spec is in
   `English Speaking` and `German A1`. They raise those cards in the ranking.
 - All three databases are top-level pages. The integration MUST be connected to each one. Nothing
   inherits access. The owner's integration has Read content and Insert content and is connected to
-  all three.
+  all three. Insert content is enough to write the live two-way relation.
 - Notion stores date-times to the minute and drops the seconds. Every interval the app writes
   MUST use whole minutes, or the stored duration drifts by up to a minute.
 - Notion date strings arrive in three forms: with milliseconds, without them, or date-only. The

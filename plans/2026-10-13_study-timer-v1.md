@@ -1,6 +1,6 @@
 # Study Timer v1
 
-Status: approved on 2026-10-13.
+Status: implemented on 2026-10-13.
 
 Read first: `CLAUDE.md`, then `memory-bank/progress.md`, `memory-bank/projectbrief.md`, and
 `memory-bank/techContext.md`. `techContext.md` holds the Notion IDs, the API contracts, and the
