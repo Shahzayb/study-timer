@@ -9,7 +9,8 @@ Decided but not built. The full spec is in
   `@MainActor`. It has no third-party dependencies.
 - The shell script `build.sh` assembles the `.app` bundle (`LSUIElement`) and ad-hoc signs it.
   The owner accepts shell for build scripts in this repo.
-- The menu bar uses an AppKit `NSStatusItem` with an `NSPopover` that hosts SwiftUI.
+- The menu bar uses an AppKit `NSStatusItem` with an `NSPopover` that hosts SwiftUI. The popover
+  window is a non-activating panel, so it takes the keyboard while the previous app stays active.
 - The app MUST NOT use `MenuBarExtra`. `MenuBarExtra` cannot be opened programmatically, and the
   ⌃⌥S hotkey needs that.
 - The hotkey uses Carbon `RegisterEventHotKey`. It needs no Accessibility permission.
@@ -67,6 +68,8 @@ Decided but not built. The full spec is in
 - The Notion API key lives only in the macOS Keychain.
 - Ad-hoc signing changes the code signature on every rebuild. macOS then asks once for Keychain
   access.
+- macOS 27 draws status items in the Window Server. A status item click cannot activate the app.
+  `NSApp.activate()` works from the Carbon hotkey only.
 
 ## Environment
 

@@ -46,7 +46,8 @@ its view code where it matches this section. This section wins where they differ
 
 - The popover is 340 × 400 pt and `.transient`. An outside click, ⌃⌥S, or Esc on a root screen
   closes it.
-- Opening activates the app. Closing returns focus to the previously active app.
+- Opening gives the popover keyboard focus without activating the app. The previously active app
+  keeps focus throughout.
 - Connect, Start, and Active are root screens. Finish, Stats, and Settings are sub-screens with a
   44 pt header. The header holds a back chevron (Esc) and an optional title.
 - Reopening shows the last screen with its field contents intact. A click outside, such as copying
@@ -270,7 +271,8 @@ Behavior:
   `+mm:ss`. Stopwatch: the elapsed time.
 - Paused: the `pause.fill` symbol replaces the ring glyph.
 - The time MUST use monospaced digits.
-- ⌃⌥S toggles the popover. Opening activates the app so the card search field gets focus.
+- ⌃⌥S toggles the popover. Opening gives the card search field keyboard focus. The app MUST NOT
+  activate, so the previously active app keeps focus.
 - First run with no API key opens the popover on the Connect screen.
 
 ### Stats
@@ -360,7 +362,9 @@ Editing times, rounding, logging past sessions, and creating cards.
   bundle ID `dev.local.StudyTimer`, ad-hoc signs the app, and installs it to `~/Applications`.
   Manual testing MUST use the installed bundle. Notifications and the login item need a bundle,
   so `swift run` cannot exercise them.
-- **Menu bar:** an AppKit `NSStatusItem` with an `.transient` `NSPopover` that hosts SwiftUI.
+- **Menu bar:** an AppKit `NSStatusItem` with an `.transient` `NSPopover` that hosts SwiftUI. The
+  popover window is a non-activating panel. A global mouse-down monitor closes it on outside
+  clicks, because a transient popover in an inactive app never sees them.
 - **App icon:** a Swift script draws `AppIcon.icns` through `iconutil`. `build.sh` bundles it.
   `actool` and Icon Composer need Xcode.
 - **Computer use:** the `--regular` launch argument sets a regular activation policy, so computer
