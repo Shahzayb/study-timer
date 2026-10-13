@@ -200,8 +200,9 @@ Finish mutes a ringing alarm.
 - Layout: the header with a back chevron only. Centered below: the active time (44 pt, semibold,
   rounded) and the saved interval `4:23 AM – 5:15 AM` (callout, secondary). After the alarm, an orange
   `+2m 12s overtime` line (callout, semibold) follows. The title and cards follow as on Active.
-- Bottom, with 14 pt margins: a Discard icon button (`trash`) and a full-width prominent
-  `Save 52m`. After the alarm, a full-width bordered `Save 45m only` sits below.
+- Bottom, with 14 pt margins, one row: a Discard icon button (`trash`), a bordered `Save 45m` for
+  the planned time only, and a prominent `Save 52m`. The two Save buttons share the width. The
+  planned button's tooltip reads `Save without overtime (⌥↩)`.
 - The active time reads `Xm Ys` under an hour and `Xh Ym` from an hour. Button labels show the
   saved length in whole minutes.
 - Keyboard: ↩ saves. ⌥↩ saves the planned time only. ⌘⌫ arms Discard. A second ⌘⌫ or a click
@@ -324,7 +325,7 @@ Behavior:
 ### Finish
 
 - Commit with overtime. In a countdown after the alarm, a second button commits the planned time
-  only.
+  only. It shows only when it saves less than the full commit, so overtime under 30 s hides it.
 - Commit is disabled while the active time rounds to zero minutes, under 30 s.
 - Discard asks for an inline confirmation.
 - A commit writes one Notion row with the title, `Interval = [end − activeTime, end]`, and the

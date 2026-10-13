@@ -49,34 +49,34 @@ struct FinishView: View {
           .help(failure.detail)
           .padding(.bottom, 8)
       }
-      VStack(spacing: 8) {
-        HStack(spacing: 8) {
-          discardButton.disabled(saving)
-          Button {
-            model.save(plannedOnly: false)
-          } label: {
-            ZStack {
-              Text("Save \(hoursMinutes(full?.duration ?? 0))").opacity(saving ? 0 : 1)
-              if saving {
-                ProgressView().controlSize(.small)
-              }
-            }
-            .fontWeight(.semibold)
-            .frame(maxWidth: .infinity)
-          }
-          .buttonStyle(.borderedProminent)
-          .keyboardShortcut(.defaultAction)
-          .disabled(full == nil || saving)
-        }
-        if let planned {
+      HStack(spacing: 8) {
+        discardButton.disabled(saving)
+        // Overtime under 30 s rounds away, so a planned-only save would match the full one.
+        if let planned, let full, planned.duration < full.duration {
           Button {
             model.save(plannedOnly: true)
           } label: {
-            Text("Save \(hoursMinutes(planned.duration)) only").frame(maxWidth: .infinity)
+            Text("Save \(hoursMinutes(planned.duration))").frame(maxWidth: .infinity)
           }
           .keyboardShortcut(.return, modifiers: .option)
+          .help("Save without overtime (⌥↩)")
           .disabled(saving)
         }
+        Button {
+          model.save(plannedOnly: false)
+        } label: {
+          ZStack {
+            Text("Save \(hoursMinutes(full?.duration ?? 0))").opacity(saving ? 0 : 1)
+            if saving {
+              ProgressView().controlSize(.small)
+            }
+          }
+          .fontWeight(.semibold)
+          .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.borderedProminent)
+        .keyboardShortcut(.defaultAction)
+        .disabled(full == nil || saving)
       }
       .controlSize(.large)
       .padding(.horizontal, 14)
