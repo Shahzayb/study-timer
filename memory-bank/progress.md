@@ -2,24 +2,25 @@
 
 ## Current state
 
-No code exists. Plan v1 in
-[plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md) is back in draft.
-Approval waits on its UI spec.
+The owner approved plan v1 in
+[plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md) on 2026-10-13. Work
+runs on branch `feat/study-timer-v1`. The `Study Timer Test` database exists.
 
 The throwaway UI prototype lives outside the repo in `~/Programming/study-timer-prototype`. It is
 installed as `~/Applications/Study Timer Prototype.app`. `shots/` holds a render of every state.
-The prototype follows the minimal redesign the owner asked for on 2026-10-13.
 
 ## Next action
 
-1. The owner clicks through the prototype and gives feedback. Claude then writes the plan's UI
-   spec section.
-2. Claude creates the `Study Timer Test` database after the owner confirms its details.
+1. Claude finishes implementation step 1 and runs its checkpoint. The step commits after the
+   owner's OK.
+2. Before step 3, the owner connects an internal integration to the test database and both live
+   databases. It needs the Read content and Insert content capabilities. Every live Notion step
+   depends on it.
 
 ## Validation gaps
 
-- The owner has not confirmed a Notion internal integration connected to both live databases and
-  the test database. Every live Notion step depends on it.
+- Whether a write to the live two-way relation needs the Update content capability is unverified.
+  The test database's one-way relation cannot show it. Verification step 9 will.
 - `SMAppService.mainApp` registration is unverified for an ad-hoc signed app in `~/Applications`.
 - Notification permission prompts are unverified for an ad-hoc signed app.
 - `RegisterEventHotKey` accepts ⌃⌥S, and the hotkey toggles the prototype popover. Apps that read

@@ -49,8 +49,12 @@ Decided but not built. The full spec is in
 - The cards self-relation `Relations` links umbrella cards and child cards. The rollup
   `Time Spent (hours)` sums each card's session `Hours`.
 - The session-to-card relation is two-way. Cards show it as `📚 Daily Study Stats`.
-- Manual testing writes to a separate `Study Timer Test` database. It has a title, a date, and a
-  one-way relation to cards, so the cards schema stays unchanged. Its IDs: _Not yet established._
+- Manual testing writes to a separate `Study Timer Test` database. It has `Title` (title),
+  `Interval` (date), and `Cards`, a one-way relation to cards, so the cards schema stays unchanged.
+  Its database ID is `<redacted>`. Its data source ID is
+  `<redacted>`.
+- All three databases are top-level pages. The integration MUST be connected to each one. Nothing
+  inherits access.
 - Notion date strings arrive in three forms: with milliseconds, without them, or date-only. The
   offset is `Z` or `+00:00`. The parser MUST handle every form.
 - How date filters treat range ends is unverified. The app queries a 90-day window by start date.
