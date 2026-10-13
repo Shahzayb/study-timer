@@ -41,6 +41,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     statusBar = StatusBarController(model: model)
+    model.alarm.activate()
+    // Sleep pauses, and the timer stays paused after wake. Screen lock does not pause.
+    NSWorkspace.shared.notificationCenter.addObserver(
+      forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
+    ) { [model] _ in
+      MainActor.assumeIsolated { model.pause() }
+    }
     model.launch()
   }
 

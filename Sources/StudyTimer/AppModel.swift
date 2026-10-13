@@ -43,6 +43,9 @@ final class AppModel {
 
   static let liveSessionsID = "<redacted>"
   static let presets = [25, 45, 60, 90]
+  /// `--fast-countdown` runs countdown minutes as seconds for manual testing.
+  static let minuteLength: TimeInterval =
+    CommandLine.arguments.contains("--fast-countdown") ? 1 : 60
 
   static let sounds: [String] =
     ((try? FileManager.default.contentsOfDirectory(atPath: "/System/Library/Sounds")) ?? [])
@@ -80,6 +83,7 @@ final class AppModel {
   }
   private(set) var commitState = CommitState.idle
   private(set) var discardArmed = false
+  private(set) var ringing = false
 
   /// The Start form. The title follows the suggestion until the owner edits it.
   var search = "" {
@@ -99,6 +103,9 @@ final class AppModel {
   private(set) var focusToken = 0
 
   @ObservationIgnored var closePopover: () -> Void = {}
+  @ObservationIgnored let alarm = Alarm()
+  /// The segment that already rang, so a ring that was muted stays muted.
+  @ObservationIgnored private var rangSegment: Date?
   @ObservationIgnored private var titleEdited = false
   @ObservationIgnored private var discardGeneration = 0
 
@@ -419,29 +426,62 @@ final class AppModel {
     session = ActiveSession(
       title: typed.isEmpty ? suggestedTitle : typed,
       cardIDs: selectedIDs,
-      target: mode == .countdown ? TimeInterval(minutes * 60) : nil,
+      target: mode == .countdown ? TimeInterval(minutes) * Self.minuteLength : nil,
       start: Date()
     )
+    if mode == .countdown { alarm.requestPermission() }
+    scheduleAlarm()
     clearForm()
     screen = .active
     closePopover()
   }
 
-  func pause() { session?.pause(at: Date()) }
+  /// Also runs on system sleep.
+  func pause() {
+    session?.pause(at: Date())
+    mute()
+    alarm.cancel()
+  }
 
-  func resume() { session?.resume(at: Date()) }
+  func resume() {
+    session?.resume(at: Date())
+    scheduleAlarm()
+  }
+
+  func mute() {
+    ringing = false
+    alarm.silence()
+  }
 
   /// Runs every 0.5 s while a session exists. A heartbeat every 30 s bounds the time a crash can lose.
   func tick(_ now: Date) {
-    guard let session, session.isRunning, now.timeIntervalSince(session.heartbeat) >= 30 else {
-      return
+    guard let session, session.isRunning else { return }
+    if session.alarmDue(at: now), rangSegment != session.segmentStart {
+      rangSegment = session.segmentStart
+      ringing = true
+      alarm.ring(alarmSound)
     }
-    self.session?.beat(at: now)
+    if now.timeIntervalSince(session.heartbeat) >= 30 { self.session?.beat(at: now) }
   }
 
   /// A clean quit records the quit moment, so the next launch resumes accounting from there.
   func prepareToQuit() {
     if session?.isRunning == true { session?.beat(at: Date()) }
+    alarm.cancel()
+  }
+
+  /// A click on the alarm banner shows Active.
+  func showActive() {
+    guard session != nil, commitState != .saving else { return }
+    discardArmed = false
+    screen = .active
+  }
+
+  /// The banner fires when a running countdown reaches its target.
+  private func scheduleAlarm() {
+    guard let session, session.isRunning, let target = session.target else { return }
+    let remaining = target - session.elapsed(at: Date())
+    if remaining > 0 { alarm.schedule(after: remaining, title: session.title) }
   }
 
   func cardNames(_ ids: [String]) -> [String] {
@@ -449,6 +489,7 @@ final class AppModel {
   }
 
   func openFinish() {
+    mute()
     commitState = .idle
     discardArmed = false
     screen = .finish
@@ -494,6 +535,8 @@ final class AppModel {
   }
 
   private func endSession() {
+    mute()
+    alarm.cancel()
     session = nil
     commitState = .idle
     discardArmed = false

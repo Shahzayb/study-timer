@@ -45,6 +45,12 @@ struct ActiveSession: Codable, Equatable, Sendable {
     return segmentStart.addingTimeInterval(target - accumulated)
   }
 
+  /// The target was reached during the running segment. A resume in overtime starts a new segment, so it never rings again.
+  func alarmDue(at now: Date) -> Bool {
+    guard let segmentStart, let reached = targetReached(at: now) else { return false }
+    return reached >= segmentStart
+  }
+
   mutating func pause(at now: Date) {
     guard let segmentStart else { return }
     reachedAt = targetReached(at: now)

@@ -107,6 +107,35 @@ private func countdown(minutes: Double = 25) -> ActiveSession {
     #expect(session.overtime(at: at(3000)) == 700)
   }
 
+  @Test func alarmIsDueOnceTheRunningSegmentReachesTheTarget() {
+    var session = countdown()
+    session.pause(at: at(600))
+    session.resume(at: at(900))
+    #expect(!session.alarmDue(at: at(1799)))
+    #expect(session.alarmDue(at: at(1800)))
+    #expect(session.alarmDue(at: at(2400)))
+  }
+
+  @Test func resumeInOvertimeDoesNotRingAgain() {
+    var session = countdown()
+    session.pause(at: at(1600))
+    #expect(!session.alarmDue(at: at(1650)))
+    session.resume(at: at(1700))
+    #expect(!session.alarmDue(at: at(1800)))
+  }
+
+  @Test func restoredOvertimeDoesNotRing() {
+    var session = countdown()
+    session.beat(at: at(1600))
+    session = session.restored()
+    session.resume(at: at(5000))
+    #expect(!session.alarmDue(at: at(5001)))
+  }
+
+  @Test func stopwatchNeverRings() {
+    #expect(!stopwatch().alarmDue(at: at(100_000)))
+  }
+
   @Test func commitWhileRunningEndsNowAndPausesMoveTheStart() {
     var session = stopwatch()
     session.pause(at: at(600))

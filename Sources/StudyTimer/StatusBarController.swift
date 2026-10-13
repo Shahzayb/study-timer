@@ -35,6 +35,10 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
     if hotKey == nil { NSLog("Study Timer: ⌃⌥S is taken by another app") }
     model.closePopover = { [weak self] in self?.popover.performClose(nil) }
+    model.alarm.onOpen = { [weak self] in
+      model.showActive()
+      if self?.popover.isShown == false { self?.show() }
+    }
     observeSession()
     if model.screen == .connect { showWhenPlaced() }
   }

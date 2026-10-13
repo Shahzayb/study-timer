@@ -7,7 +7,7 @@ struct ActiveView: View {
     VStack(spacing: 0) {
       if let session = model.session {
         TimelineView(.periodic(from: .now, by: 0.5)) { context in
-          RingTimer(session: session, now: context.date)
+          RingTimer(session: session, ringing: model.ringing, now: context.date)
         }
         .frame(width: 188, height: 188)
         .padding(.top, 24)
@@ -44,6 +44,7 @@ struct SessionLabels: View {
 
 private struct RingTimer: View {
   let session: ActiveSession
+  let ringing: Bool
   let now: Date
   @Environment(\.colorScheme) private var scheme
 
@@ -72,7 +73,7 @@ private struct RingTimer: View {
         .rotationEffect(.degrees(-90))
         .opacity(session.isRunning ? 1 : 0.3)
       VStack(spacing: 2) {
-        Color.clear.frame(height: 18)
+        statusIcon(over: over).frame(height: 18)
         Text(timeText(elapsed: elapsed, over: over))
           .font(.system(size: 42, weight: .semibold, design: .rounded))
           .monospacedDigit()
@@ -98,8 +99,20 @@ private struct RingTimer: View {
   private func caption(over: TimeInterval?) -> String {
     if !session.isRunning { return "PAUSED" }
     if over != nil { return "OVERTIME" }
-    if let target = session.target { return "\(Int(target / 60)) MIN" }
+    if let target = session.target { return "\(Int(target / AppModel.minuteLength)) MIN" }
     return "ELAPSED"
+  }
+
+  @ViewBuilder private func statusIcon(over: TimeInterval?) -> some View {
+    if ringing {
+      Image(systemName: "bell.fill")
+        .foregroundStyle(.orange)
+        .symbolEffect(.wiggle, options: .repeating)
+    } else if over != nil, session.isRunning {
+      Image(systemName: "bell.slash.fill").foregroundStyle(.secondary)
+    } else {
+      Color.clear
+    }
   }
 }
 
@@ -109,6 +122,14 @@ private struct SessionControls: View {
 
   var body: some View {
     HStack(spacing: 22) {
+      if model.ringing {
+        RoundButton(
+          symbol: "bell.slash.fill", label: "Mute alarm (M)", tint: .orange, prominent: true
+        ) {
+          model.mute()
+        }
+        .keyboardShortcut("m", modifiers: [])
+      }
       if session.isRunning {
         RoundButton(symbol: "pause.fill", label: "Pause (Space)") { model.pause() }
           .keyboardShortcut(.space, modifiers: [])
@@ -118,7 +139,9 @@ private struct SessionControls: View {
         }
         .keyboardShortcut(.space, modifiers: [])
       }
-      RoundButton(symbol: "checkmark", label: "Finish (↩)", prominent: session.isRunning) {
+      RoundButton(
+        symbol: "checkmark", label: "Finish (↩)", prominent: session.isRunning && !model.ringing
+      ) {
         model.openFinish()
       }
       .keyboardShortcut(.return, modifiers: [])
