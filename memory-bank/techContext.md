@@ -67,8 +67,8 @@ Implementation steps 1 to 3 are built. The rest is decided but not built. The fu
 ## Constraints
 
 - The Notion API key lives only in the macOS Keychain.
-- Ad-hoc signing changes the code signature on every rebuild. macOS then asks once for Keychain
-  access.
+- Ad-hoc signing changes the code signature on every rebuild. A rebuilt app still reads its Keychain
+  item without a prompt, so rebuilding during a checkpoint is safe.
 - macOS 27 draws status items in the Window Server. A status item click cannot activate the app.
   `NSApp.activate()` works from the Carbon hotkey only.
 - An accessory app has no menu bar. Text fields get ⌘V, ⌘C, ⌘A, and ⌘Z only from the Edit menu the
