@@ -42,7 +42,7 @@ final class AppModel {
     case failed(Failure)
   }
 
-  static let presets = [25, 45, 60, 90]
+  static let presets = [30, 45, 60, 90]
   /// `--fast-countdown` runs countdown minutes as seconds for manual testing.
   static let minuteLength: TimeInterval =
     CommandLine.arguments.contains("--fast-countdown") ? 1 : 60
