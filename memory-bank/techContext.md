@@ -83,9 +83,18 @@ Decided but not built. The full spec is in
 - Claude's shell has no Screen Recording permission, so `screencapture` fails. To render a view
   to PNG in-process, use `CALayer.render(in:)`. `NSView.cacheDisplay` drops SwiftUI content.
   Neither renders window materials.
+- An in-process capture MUST NOT activate the app. Keystrokes typed during the capture land in
+  the popover. An inactive app draws prominent controls gray. Setting `controlActiveState` to
+  `.key` fixes SwiftUI-drawn controls. It does not fix AppKit-backed ones such as segmented
+  pickers.
 - Computer use cannot list or target an `LSUIElement` app. It can target the same app under a
   regular activation policy. A popover has no AX window, so the background `app_*` tools fail on
-  it. Full-screen screenshots and clicks reach it.
+  it. Full-screen screenshots and clicks reach it. A full-screen `zoom` with `save_to_disk` keeps
+  real screenshots. A debug hotkey that steps through mock states lets one batch capture every
+  state.
+- The CoreGraphics overlay in this SDK has no `drawConicGradient`. Draw a gradient ring as short
+  arcs with interpolated colors.
+- macOS 27 shows a full-bleed rounded-square `.icns` with a glass edge and no gray backing tile.
 - The Mac has no code-signing identities. Builds use ad-hoc signing.
 
 ## Commands
