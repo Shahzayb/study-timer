@@ -30,8 +30,8 @@ and commits one accurate row.
   system font, and system materials.
 - The UI MUST be minimal and modern. Use little text, clear icons, and high contrast.
 - The popover MUST keep a fixed size of 340 × 400 pt. Long content scrolls inside it.
-- Controls and bars use the system accent color. Bars MUST be solid. Only the timer ring and the
-  app icon use the brand gradient of cyan, violet, and pink.
+- Controls use the system accent color. Only the timer ring and the app icon use the brand
+  gradient of cyan, violet, and pink.
 - The app icon and the idle menu bar glyph MUST differ from system timer icons. Both use a ring
   mark that is 80% filled.
 - Manual testing by Claude and the owner is the primary verification. Unit tests cover timing
@@ -63,7 +63,7 @@ its view code where it matches this section. This section wins where they differ
 - Icon buttons are 28 pt circles with a hover fill and a tooltip. Session controls are 54 pt
   circles. A prominent control fills with the accent color.
 - Times use monospaced digits. Large numbers use the rounded design.
-- The accent color marks controls, selection, and bars. Orange marks the alarm and overtime. Red
+- The accent color marks controls and selection. Orange marks the alarm and overtime. Red
   marks errors and Discard. Only the ring uses the brand gradient. Light mode uses deeper ring
   hues.
 - Error text is one short line. Its tooltip holds Notion's full message.
@@ -218,9 +218,9 @@ Stats opens from the footer capsule. The header reads `Last 24 hours`. The conte
 18 pt margins:
 
 1. The total (40 pt, semibold, rounded).
-2. One bar per card, by time descending. The name (callout, medium) and the time (callout,
-   secondary) sit above a 6 pt solid accent capsule on a faint track. Width is relative to the top
-   card, at least 6 pt. Sessions without a card form a gray `No card` bar.
+2. One row per card, by time descending. The name (callout, medium) sits on the left and the time
+   (callout, secondary) on the right. Sessions without a card form a `No card` row in secondary
+   text.
 3. A divider.
 4. Sessions, newest first. Each row shows the title (callout, medium) over `cards · start – end`
    (caption, secondary). Several cards are joined by `, `. The trailing time counts only the part

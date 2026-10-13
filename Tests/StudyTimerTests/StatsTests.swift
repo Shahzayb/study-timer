@@ -36,19 +36,19 @@ private let algebra = CardRow(id: "la", name: "Linear Algebra", status: "Backlog
       sessions: [session("a", from: 3, to: 2, cards: ["en", "job", "en"])], cards: [english, job],
       now: now)
     #expect(stats.total == 3600)
-    #expect(stats.bars.map(\.name) == ["English", "Job Search"])
-    #expect(stats.bars.map(\.seconds) == [3600, 3600])
+    #expect(stats.cardTotals.map(\.name) == ["English", "Job Search"])
+    #expect(stats.cardTotals.map(\.seconds) == [3600, 3600])
   }
 
-  @Test func sessionsWithoutACardShareOneBar() {
+  @Test func sessionsWithoutACardShareOneTotal() {
     let stats = DayStats(
       sessions: [
         session("a", from: 5, to: 4.5, cards: []), session("b", from: 3, to: 2.5, cards: []),
         session("c", from: 2, to: 0, cards: ["en"]),
       ], cards: [english], now: now)
-    #expect(stats.bars.map(\.name) == ["English", "No card"])
-    #expect(stats.bars.last?.isNoCard == true)
-    #expect(stats.bars.last?.seconds == 3600)
+    #expect(stats.cardTotals.map(\.name) == ["English", "No card"])
+    #expect(stats.cardTotals.last?.isNoCard == true)
+    #expect(stats.cardTotals.last?.seconds == 3600)
   }
 
   @Test func rowsRunNewestFirstAndNameUnknownCards() {
@@ -69,7 +69,7 @@ private let algebra = CardRow(id: "la", name: "Linear Algebra", status: "Backlog
       ], cards: [english], now: now)
     #expect(stats.total == 0)
     #expect(stats.rows.isEmpty)
-    #expect(stats.bars.isEmpty)
+    #expect(stats.cardTotals.isEmpty)
   }
 }
 

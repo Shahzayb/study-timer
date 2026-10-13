@@ -2,8 +2,8 @@ import Foundation
 
 /// The last 24 hours of sessions. Only the part of a session inside the window counts.
 struct DayStats: Equatable {
-  struct Bar: Equatable, Identifiable {
-    /// The card ID. Sessions without a card share one bar.
+  struct CardTotal: Equatable, Identifiable {
+    /// The card ID. Sessions without a card share one total.
     var id: String
     var name: String
     var seconds: TimeInterval
@@ -20,7 +20,7 @@ struct DayStats: Equatable {
   static let window: TimeInterval = 86_400
 
   private(set) var total: TimeInterval = 0
-  private(set) var bars: [Bar] = []
+  private(set) var cardTotals: [CardTotal] = []
   private(set) var rows: [Row] = []
 
   init(sessions: [SessionRow], cards: [CardRow], now: Date) {
@@ -39,10 +39,11 @@ struct DayStats: Equatable {
           session: session, cardNames: session.cardIDs.map { names[$0] ?? "Unknown card" },
           seconds: seconds))
     }
-    bars = perCard.map { id, seconds in
-      Bar(id: id, name: id.isEmpty ? "No card" : names[id] ?? "Unknown card", seconds: seconds)
+    cardTotals = perCard.map { id, seconds in
+      CardTotal(
+        id: id, name: id.isEmpty ? "No card" : names[id] ?? "Unknown card", seconds: seconds)
     }
-    bars.sort {
+    cardTotals.sort {
       $0.seconds != $1.seconds
         ? $0.seconds > $1.seconds : $0.name.localizedStandardCompare($1.name) == .orderedAscending
     }

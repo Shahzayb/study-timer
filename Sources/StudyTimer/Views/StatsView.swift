@@ -39,9 +39,8 @@ struct StatsView: View {
         if stats.rows.isEmpty {
           Text("No sessions").foregroundStyle(.secondary)
         } else {
-          let top = stats.bars.first?.seconds ?? 1
-          VStack(spacing: 12) {
-            ForEach(stats.bars) { CardBar(bar: $0, share: $0.seconds / top) }
+          VStack(spacing: 8) {
+            ForEach(stats.cardTotals) { CardTotalRow(total: $0) }
           }
           Divider()
           VStack(spacing: 12) {
@@ -57,26 +56,17 @@ struct StatsView: View {
   }
 }
 
-private struct CardBar: View {
-  let bar: DayStats.Bar
-  let share: Double
+private struct CardTotalRow: View {
+  let total: DayStats.CardTotal
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
-      HStack {
-        Text(bar.name).font(.callout.weight(.medium)).lineLimit(1)
-        Spacer()
-        Text(hoursMinutes(bar.seconds)).font(.callout).monospacedDigit().foregroundStyle(.secondary)
-      }
-      GeometryReader { geometry in
-        ZStack(alignment: .leading) {
-          Capsule().fill(Color.primary.opacity(0.08))
-          Capsule()
-            .fill(bar.isNoCard ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
-            .frame(width: max(6, geometry.size.width * share))
-        }
-      }
-      .frame(height: 6)
+    HStack {
+      Text(total.name)
+        .font(.callout.weight(.medium))
+        .foregroundStyle(total.isNoCard ? .secondary : .primary)
+        .lineLimit(1)
+      Spacer()
+      Text(hoursMinutes(total.seconds)).font(.callout).monospacedDigit().foregroundStyle(.secondary)
     }
   }
 }
