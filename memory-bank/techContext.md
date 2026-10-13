@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Implementation steps 1 and 2 are built. The rest is decided but not built. The full spec is in
+Implementation steps 1 to 3 are built. The rest is decided but not built. The full spec is in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md).
 
 - The app is a SwiftPM package in Swift 6.4 with strict concurrency. UI state runs on
@@ -55,7 +55,8 @@ Implementation steps 1 and 2 are built. The rest is decided but not built. The f
   Its database ID is `<redacted>`. Its data source ID is
   `<redacted>`.
 - All three databases are top-level pages. The integration MUST be connected to each one. Nothing
-  inherits access.
+  inherits access. The owner's integration has Read content and Insert content and is connected to
+  all three.
 - Notion date strings arrive in three forms: with milliseconds, without them, or date-only. The
   offset is `Z` or `+00:00`. The parser MUST handle every form.
 - How date filters treat range ends is unverified. The app queries a 90-day window by start date.
@@ -70,6 +71,8 @@ Implementation steps 1 and 2 are built. The rest is decided but not built. The f
   access.
 - macOS 27 draws status items in the Window Server. A status item click cannot activate the app.
   `NSApp.activate()` works from the Carbon hotkey only.
+- An accessory app has no menu bar. Text fields get ⌘V, ⌘C, ⌘A, and ⌘Z only from the Edit menu the
+  app sets as `NSApp.mainMenu`.
 
 ## Environment
 

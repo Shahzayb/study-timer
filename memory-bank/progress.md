@@ -4,18 +4,15 @@
 
 The owner approved plan v1 in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md) on 2026-10-13. Work
-runs on branch `feat/study-timer-v1`. Implementation steps 1 and 2 are done. The
-`Study Timer Test` database exists.
+runs on branch `feat/study-timer-v1`. Implementation steps 1 to 3 are done. The app connects to
+the `Study Timer Test` database.
 
 The throwaway UI prototype lives outside the repo in `~/Programming/study-timer-prototype`. It is
 installed as `~/Applications/Study Timer Prototype.app`. `shots/` holds a render of every state.
 
 ## Next action
 
-1. Claude implements step 3: Settings, Keychain, and `NotionClient`.
-2. Before step 3, the owner connects an internal integration to the test database and both live
-   databases. It needs the Read content and Insert content capabilities. Every live Notion step
-   depends on it.
+1. Claude implements step 4: stats and card ranking with tests.
 
 ## Validation gaps
 
