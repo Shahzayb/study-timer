@@ -8,6 +8,10 @@ ran on branch `feat/study-timer-v1`, merged into `main` on 2026-10-13. All eight
 are done.
 The owner confirmed a commit to the live database on 2026-10-13.
 
+`main` is public at `github.com/Shahzayb/study-timer` since 2026-10-13. Other branches stay local.
+`~/Programming/study-timer-backup.bundle` holds the history from before the rewrite, Notion IDs
+included. It MUST NOT be pushed or shared.
+
 The throwaway UI prototype lives outside the repo in `~/Programming/study-timer-prototype`. It is
 installed as `~/Applications/Study Timer Prototype.app`. `shots/` holds a render of every state.
 

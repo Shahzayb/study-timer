@@ -66,7 +66,7 @@ All eight implementation steps are built. The full spec is in
 
 ## Constraints
 
-- The repo goes public on GitHub as `Shahzayb/study-timer`. It MUST NOT hold Notion IDs or the
+- The repo is public on GitHub as `Shahzayb/study-timer`. It MUST NOT hold Notion IDs or the
   owner's Gmail address. Commits use `29760858+Shahzayb@users.noreply.github.com`.
 - The Notion API key lives only in the macOS Keychain.
 - Ad-hoc signing changes the code signature on every rebuild. A rebuilt app still reads its Keychain

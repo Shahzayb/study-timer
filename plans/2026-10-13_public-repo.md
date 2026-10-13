@@ -1,6 +1,6 @@
 # Public repo
 
-Status: approved on 2026-10-13.
+Status: implemented on 2026-10-13.
 
 ## Context
 
