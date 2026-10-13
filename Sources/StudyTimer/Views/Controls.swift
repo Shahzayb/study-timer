@@ -102,24 +102,6 @@ struct RoundButton: View {
   }
 }
 
-/// Only the timer ring and the app icon use the brand gradient.
-enum Brand {
-  /// Light mode uses deeper hues, so the ring keeps contrast on a light popover.
-  static func ring(_ scheme: ColorScheme) -> [Color] {
-    scheme == .dark
-      ? [
-        Color(red: 0.37, green: 0.89, blue: 0.98), Color(red: 0.63, green: 0.52, blue: 0.99),
-        Color(red: 0.96, green: 0.45, blue: 0.75),
-      ]
-      : [
-        Color(red: 0.0, green: 0.55, blue: 0.85), Color(red: 0.42, green: 0.29, blue: 0.93),
-        Color(red: 0.86, green: 0.2, blue: 0.55),
-      ]
-  }
-
-  static let overtime = [Color.orange, Color(red: 1, green: 0.32, blue: 0.32)]
-}
-
 /// `mm:ss` under an hour, `h:mm:ss` from an hour.
 func clock(_ seconds: TimeInterval) -> String {
   let s = max(0, Int(seconds))

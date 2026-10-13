@@ -46,7 +46,6 @@ private struct RingTimer: View {
   let session: ActiveSession
   let ringing: Bool
   let now: Date
-  @Environment(\.colorScheme) private var scheme
 
   var body: some View {
     let elapsed = session.elapsed(at: now)
@@ -65,9 +64,7 @@ private struct RingTimer: View {
       Circle()
         .trim(from: 0, to: max(progress, 0.002))
         .stroke(
-          AngularGradient(
-            colors: over == nil ? Brand.ring(scheme) : Brand.overtime,
-            center: .center, startAngle: .zero, endAngle: .degrees(360 * max(progress, 0.05))),
+          over == nil ? AnyShapeStyle(.tint) : AnyShapeStyle(.orange),
           style: StrokeStyle(lineWidth: 12, lineCap: .round)
         )
         .rotationEffect(.degrees(-90))

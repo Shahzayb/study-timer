@@ -112,8 +112,6 @@ Implementation steps 1 to 6 are built. The rest is decided but not built. The fu
   it. Full-screen screenshots and clicks reach it. A full-screen `zoom` with `save_to_disk` keeps
   real screenshots. A debug hotkey that steps through mock states lets one batch capture every
   state.
-- The CoreGraphics overlay in this SDK has no `drawConicGradient`. Draw a gradient ring as short
-  arcs with interpolated colors.
 - macOS 27 shows a full-bleed rounded-square `.icns` with a glass edge and no gray backing tile.
 - The Mac has no code-signing identities. Builds use ad-hoc signing.
 - The installed prototype also registers ⌃⌥S. It MUST NOT run while the app is under test.

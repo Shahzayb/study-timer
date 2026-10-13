@@ -30,10 +30,10 @@ and commits one accurate row.
   system font, and system materials.
 - The UI MUST be minimal and modern. Use little text, clear icons, and high contrast.
 - The popover MUST keep a fixed size of 340 × 400 pt. Long content scrolls inside it.
-- Controls use the system accent color. Only the timer ring and the app icon use the brand
-  gradient of cyan, violet, and pink.
+- Controls and the timer ring use the system accent color. The UI and the app icon MUST NOT use
+  gradients.
 - The app icon and the idle menu bar glyph MUST differ from system timer icons. Both use a ring
-  mark that is 80% filled.
+  mark that is 80% filled. The app icon is a white ring on one solid accent-blue square.
 - Manual testing by Claude and the owner is the primary verification. Unit tests cover timing
   math, date parsing, ranking, and retry logic.
 
@@ -63,9 +63,8 @@ its view code where it matches this section. This section wins where they differ
 - Icon buttons are 28 pt circles with a hover fill and a tooltip. Session controls are 54 pt
   circles. A prominent control fills with the accent color.
 - Times use monospaced digits. Large numbers use the rounded design.
-- The accent color marks controls and selection. Orange marks the alarm and overtime. Red
-  marks errors and Discard. Only the ring uses the brand gradient. Light mode uses deeper ring
-  hues.
+- The accent color marks controls, selection, and the timer ring. Orange marks the alarm and
+  overtime. Red marks errors and Discard.
 - Error text is one short line. Its tooltip holds Notion's full message.
 
 | Cause | Text |
@@ -177,11 +176,11 @@ Layout, then the footer:
 
 | State | Ring | Time | Caption | Status icon |
 | --- | --- | --- | --- | --- |
-| Countdown | Remaining fraction, brand gradient | Remaining, rounded up | `45 MIN` | — |
+| Countdown | Remaining fraction, accent color | Remaining, rounded up | `45 MIN` | — |
 | Stopwatch | Fills once per hour | Elapsed | `ELAPSED` | — |
 | Paused | Dimmed to 30% | Dimmed to 45% | `PAUSED` | — |
-| Alarm | Full, orange to red | Orange `+mm:ss` | `OVERTIME` | Wiggling orange `bell.fill` |
-| Overtime, muted | Full, orange to red | Orange `+mm:ss` | `OVERTIME` | Secondary `bell.slash.fill` |
+| Alarm | Full, orange | Orange `+mm:ss` | `OVERTIME` | Wiggling orange `bell.fill` |
+| Overtime, muted | Full, orange | Orange `+mm:ss` | `OVERTIME` | Secondary `bell.slash.fill` |
 
 Controls, left to right:
 
