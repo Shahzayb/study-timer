@@ -167,6 +167,29 @@ private func client(_ handler: @escaping (NotionStub.Call) throws -> (Int, Strin
     }
   }
 
+  @Test func writesOneRowKeyedByPropertyID() async throws {
+    let notion = client { _ in (200, #"{"object": "page", "id": "new-page"}"#) }
+    let interval = DateInterval(
+      start: Date(timeIntervalSince1970: 1_791_779_400),
+      end: Date(timeIntervalSince1970: 1_791_782_100))
+    let id = try await notion.createSession(
+      schema, title: "drill 12", interval: interval, cardIDs: ["c1", "c2"])
+
+    let call = try #require(NotionStub.calls.first)
+    #expect(id == "new-page")
+    #expect(call.method == "POST")
+    #expect(call.path == "/v1/pages")
+    let parent = call.body["parent"] as? [String: String]
+    #expect(parent == ["type": "data_source_id", "data_source_id": "aaaa"])
+    let properties = try #require(call.body["properties"] as? [String: Any])
+    let title = (properties["title"] as? [String: Any])?["title"] as? [[String: Any]]
+    #expect((title?.first?["text"] as? [String: String])?["content"] == "drill 12")
+    let date = (properties["d%3Ab"] as? [String: Any])?["date"] as? [String: String]
+    #expect(date == ["start": "2026-10-12T04:30:00Z", "end": "2026-10-12T05:15:00Z"])
+    let relation = (properties["r%3Ax"] as? [String: Any])?["relation"] as? [[String: String]]
+    #expect(relation == [["id": "c1"], ["id": "c2"]])
+  }
+
   @Test func networkFailureReadsOffline() async {
     let notion = client { _ in throw URLError(.notConnectedToInternet) }
     do {

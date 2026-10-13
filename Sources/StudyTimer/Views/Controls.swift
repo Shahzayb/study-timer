@@ -71,3 +71,65 @@ struct FailureView: View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
   }
 }
+
+/// A 54 pt circular session control. A prominent one fills with its tint.
+struct RoundButton: View {
+  let symbol: String
+  let label: String
+  var tint: Color = .accentColor
+  var prominent = false
+  let action: () -> Void
+  private let hovering = State(initialValue: false)
+
+  var body: some View {
+    Button(action: action) {
+      Image(systemName: symbol)
+        .font(.system(size: 19, weight: .semibold))
+        .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+        .frame(width: 54, height: 54)
+        .background(
+          Circle().fill(
+            prominent
+              ? AnyShapeStyle(tint.opacity(hovering.wrappedValue ? 0.85 : 1))
+              : AnyShapeStyle(Color.primary.opacity(hovering.wrappedValue ? 0.16 : 0.1)))
+        )
+        .contentShape(Circle())
+    }
+    .buttonStyle(PressStyle())
+    .onHover { hovering.wrappedValue = $0 }
+    .help(label)
+    .accessibilityLabel(label)
+  }
+}
+
+/// Only the timer ring and the app icon use the brand gradient.
+enum Brand {
+  /// Light mode uses deeper hues, so the ring keeps contrast on a light popover.
+  static func ring(_ scheme: ColorScheme) -> [Color] {
+    scheme == .dark
+      ? [
+        Color(red: 0.37, green: 0.89, blue: 0.98), Color(red: 0.63, green: 0.52, blue: 0.99),
+        Color(red: 0.96, green: 0.45, blue: 0.75),
+      ]
+      : [
+        Color(red: 0.0, green: 0.55, blue: 0.85), Color(red: 0.42, green: 0.29, blue: 0.93),
+        Color(red: 0.86, green: 0.2, blue: 0.55),
+      ]
+  }
+
+  static let overtime = [Color.orange, Color(red: 1, green: 0.32, blue: 0.32)]
+}
+
+/// `mm:ss` under an hour, `h:mm:ss` from an hour.
+func clock(_ seconds: TimeInterval) -> String {
+  let s = max(0, Int(seconds))
+  return s >= 3600
+    ? String(format: "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60)
+    : String(format: "%02d:%02d", s / 60, s % 60)
+}
+
+extension SubHeader where Trailing == EmptyView {
+  init(title: String? = nil, back: @escaping () -> Void) {
+    self.init(title: title, back: back) { EmptyView() }
+  }
+}

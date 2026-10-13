@@ -194,19 +194,19 @@ notification opens it on Active.
 
 ### Finish
 
-Finish opens from Active. The timer keeps running here, so `end` stays the Save moment. Opening
+Finish opens from Active. The timer keeps running here, so `end` stays the minute of Save. Opening
 Finish mutes a ringing alarm.
 
 - Layout: the header with a back chevron only. Centered below: the active time (44 pt, semibold,
-  rounded) and the interval `4:23 AM – 5:15 AM` (callout, secondary). After the alarm, an orange
+  rounded) and the saved interval `4:23 AM – 5:15 AM` (callout, secondary). After the alarm, an orange
   `+2m 12s overtime` line (callout, semibold) follows. The title and cards follow as on Active.
 - Bottom, with 14 pt margins: a Discard icon button (`trash`) and a full-width prominent
   `Save 52m`. After the alarm, a full-width bordered `Save 45m only` sits below.
-- The active time reads `Xm Ys` under an hour and `Xh Ym` from an hour. Button labels drop the
-  seconds.
+- The active time reads `Xm Ys` under an hour and `Xh Ym` from an hour. Button labels show the
+  saved length in whole minutes.
 - Keyboard: ↩ saves. ⌥↩ saves the planned time only. ⌘⌫ arms Discard. A second ⌘⌫ or a click
   discards. Esc returns to Active.
-- With zero active time, both Save buttons are disabled.
+- While the active time rounds to zero minutes, Save is disabled.
 - Armed Discard: the trash becomes a prominent red `Discard` for 3 s, then reverts.
 - Save adds the commit to the queue and shows Start at once. Stats shows the row as sending. A
   later permanent failure shows the failed-commit banner.
@@ -325,13 +325,15 @@ Behavior:
 
 - Commit with overtime. In a countdown after the alarm, a second button commits the planned time
   only.
-- Commit is disabled while the active time is zero.
+- Commit is disabled while the active time rounds to zero minutes, under 30 s.
 - Discard asks for an inline confirmation.
-- A commit writes one Notion row with the title, `Interval = [end − activeTime, end]` at exact
-  seconds, and the selected cards.
-  - `end` is the commit moment. When paused, `end` is the pause moment.
-  - "Planned time only" sets `end` to the moment elapsed time reached the target. The duration
-    equals the target.
+- A commit writes one Notion row with the title, `Interval = [end − activeTime, end]`, and the
+  selected cards. Notion stores date-times to the minute, so the interval MUST use whole minutes.
+  - `end` is the commit moment floored to the minute. When paused, `end` is the pause moment
+    floored to the minute.
+  - `activeTime` is the active time rounded to the nearest minute. Half a minute rounds up.
+  - "Planned time only" sets `end` to the moment elapsed time reached the target, floored to the
+    minute. The duration equals the target.
 
 ### Retries
 
@@ -423,7 +425,8 @@ owner's permission.
 3. Settings, Keychain, and `NotionClient` with schema discovery, pagination, date parsing, and
    tests. **Checkpoint:** enter the API key and load the test database.
 4. Stats and card ranking with tests (24-hour overlap, frecency, title default). **Checkpoint.**
-5. Start, running, and finish views. **Checkpoint.**
+5. Start, running, and finish views, and the saved active session. Until step 7, Save sends the
+   row directly and keeps the session on Finish when it fails. **Checkpoint.**
 6. Alarm, notifications, and sleep pause. **Checkpoint** with `--fast-countdown`.
 7. `CommitQueue` with retry, backoff, and duplicate check, with tests. **Checkpoint.**
 8. Launch at login. **Checkpoint.**

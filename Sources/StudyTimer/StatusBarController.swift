@@ -10,6 +10,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
   private let popover = NSPopover()
   private var hotKey: HotKey?
   private var clickMonitor: Any?
+  private var labelTimer: Timer?
+  private var lastLabel: String?
 
   init(model: AppModel) {
     self.model = model
@@ -32,6 +34,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
       self?.toggle()
     }
     if hotKey == nil { NSLog("Study Timer: ⌃⌥S is taken by another app") }
+    model.closePopover = { [weak self] in self?.popover.performClose(nil) }
+    observeSession()
     if model.screen == .connect { showWhenPlaced() }
   }
 
@@ -87,6 +91,75 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
   }
 }
 
+// MARK: Menu bar label
+
+extension StatusBarController {
+  /// The 0.5 s timer runs only while a session exists. It drives the label and the heartbeat.
+  private func observeSession() {
+    withObservationTracking {
+      _ = model.session
+    } onChange: { [weak self] in
+      // The change lands after this callback, so the update waits one turn.
+      DispatchQueue.main.async { self?.observeSession() }
+    }
+    let active = model.session != nil
+    if active, labelTimer == nil {
+      let timer = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in
+        MainActor.assumeIsolated { self?.tick() }
+      }
+      RunLoop.main.add(timer, forMode: .common)
+      labelTimer = timer
+    } else if !active {
+      labelTimer?.invalidate()
+      labelTimer = nil
+    }
+    updateLabel(Date())
+  }
+
+  private func tick() {
+    let now = Date()
+    model.tick(now)
+    updateLabel(now)
+  }
+
+  /// Redraws only when the text or the ring step changes.
+  private func updateLabel(_ now: Date) {
+    guard let button = statusItem.button else { return }
+    guard let session = model.session else {
+      guard lastLabel != "idle" else { return }
+      lastLabel = "idle"
+      button.image = Glyph.ring(progress: 0.8, knob: true)
+      button.attributedTitle = NSAttributedString()
+      button.imagePosition = .imageOnly
+      return
+    }
+
+    let elapsed = session.elapsed(at: now)
+    var progress = 1.0
+    let text: String
+    if let over = session.overtime(at: now) {
+      text = "+" + clock(over)
+    } else if let target = session.target {
+      text = clock((target - elapsed).rounded(.up))
+      progress = max(0, 1 - elapsed / target)
+    } else {
+      text = clock(elapsed)
+      progress = elapsed.truncatingRemainder(dividingBy: 3600) / 3600
+    }
+    let step = Int((progress * 60).rounded())
+    let key = "\(text)|\(session.isRunning)|\(step)"
+    guard key != lastLabel else { return }
+    lastLabel = key
+
+    let font = NSFont.monospacedDigitSystemFont(
+      ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .medium)
+    button.attributedTitle = NSAttributedString(string: text, attributes: [.font: font])
+    button.image =
+      session.isRunning ? Glyph.ring(progress: Double(step) / 60, knob: false) : Glyph.paused()
+    button.imagePosition = .imageLeading
+  }
+}
+
 /// Menu bar glyphs, drawn as template images so they follow the menu bar appearance.
 enum Glyph {
   /// The app mark: a ring that fills clockwise from 12 o'clock. The idle glyph is 80% with a knob.
@@ -122,6 +195,14 @@ enum Glyph {
     }
     image.isTemplate = true
     image.accessibilityDescription = "Study Timer"
+    return image
+  }
+
+  static func paused() -> NSImage {
+    let configuration = NSImage.SymbolConfiguration(pointSize: 11, weight: .bold)
+    let image = NSImage(systemSymbolName: "pause.fill", accessibilityDescription: "Paused")!
+      .withSymbolConfiguration(configuration)!
+    image.isTemplate = true
     return image
   }
 }

@@ -9,23 +9,13 @@ struct PopoverView: View {
       switch model.screen {
       case .connect: ConnectView(model: model)
       case .start: StartView(model: model)
+      case .active: ActiveView(model: model)
+      case .finish: FinishView(model: model)
       case .stats: StatsView(model: model)
       case .settings: SettingsView(model: model)
       }
     }
     .frame(width: 340, height: 400)
-  }
-}
-
-struct StartView: View {
-  @Bindable var model: AppModel
-
-  var body: some View {
-    VStack(spacing: 0) {
-      Spacer(minLength: 0)
-      Divider()
-      Footer(model: model)
-    }
   }
 }
 

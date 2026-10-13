@@ -24,7 +24,14 @@ struct Failure: Equatable {
 @MainActor
 @Observable
 final class AppModel {
-  enum Screen { case connect, start, stats, settings }
+  enum Screen { case connect, start, active, finish, stats, settings }
+  enum Mode: String { case stopwatch, countdown }
+
+  enum CommitState: Equatable {
+    case idle
+    case saving
+    case failed(Failure)
+  }
 
   /// The last schema discovery, shown on Connect and in Settings.
   enum Check: Equatable {
@@ -35,6 +42,7 @@ final class AppModel {
   }
 
   static let liveSessionsID = "<redacted>"
+  static let presets = [25, 45, 60, 90]
 
   static let sounds: [String] =
     ((try? FileManager.default.contentsOfDirectory(atPath: "/System/Library/Sounds")) ?? [])
@@ -66,6 +74,34 @@ final class AppModel {
     didSet { defaults.set(launchAtLogin, forKey: "launchAtLogin") }
   }
 
+  /// The session in progress. Every change goes to disk, so a quit or crash keeps it.
+  private(set) var session: ActiveSession? {
+    didSet { Persistence.save(session) }
+  }
+  private(set) var commitState = CommitState.idle
+  private(set) var discardArmed = false
+
+  /// The Start form. The title follows the suggestion until the owner edits it.
+  var search = "" {
+    didSet { if search != oldValue { highlightID = firstMatchID } }
+  }
+  private(set) var selectedIDs: [String] = []
+  var highlightID: String?
+  private(set) var title = ""
+  var mode: Mode {
+    didSet { defaults.set(mode.rawValue, forKey: "mode") }
+  }
+  var minutes: Int {
+    didSet { defaults.set(minutes, forKey: "minutes") }
+  }
+  var customMinutes: String
+  /// Bumped to move keyboard focus into the search field.
+  private(set) var focusToken = 0
+
+  @ObservationIgnored var closePopover: () -> Void = {}
+  @ObservationIgnored private var titleEdited = false
+  @ObservationIgnored private var discardGeneration = 0
+
   @ObservationIgnored private let defaults = UserDefaults.standard
   @ObservationIgnored private var returnScreen = Screen.start
   @ObservationIgnored private var checkGeneration = 0
@@ -82,9 +118,17 @@ final class AppModel {
     sourceDraft = source
     apiKey = key
     keyDraft = key ?? ""
-    screen = key == nil ? .connect : .start
+    let restored = Persistence.loadSession()?.restored()
+    session = restored
+    screen = key == nil ? .connect : restored == nil ? .start : .active
     alarmSound = defaults.string(forKey: "alarmSound") ?? "Glass"
     launchAtLogin = defaults.object(forKey: "launchAtLogin") as? Bool ?? true
+    let savedMode = Mode(rawValue: defaults.string(forKey: "mode") ?? "") ?? .countdown
+    let savedMinutes = defaults.object(forKey: "minutes") as? Int ?? 45
+    mode = savedMode
+    minutes = savedMinutes
+    let typed = savedMode == .countdown && !Self.presets.contains(savedMinutes)
+    customMinutes = typed ? "\(savedMinutes)" : ""
   }
 
   var refreshing: Bool { loadingSessions || loadingCards || check == .checking }
@@ -111,13 +155,14 @@ final class AppModel {
     switch screen {
     case .stats: screen = returnScreen
     case .settings: closeSettings()
-    case .connect, .start: return false
+    case .finish: backToActive()
+    case .connect, .start, .active: return false
     }
     return true
   }
 
   private func open(_ subScreen: Screen) {
-    if screen == .connect || screen == .start { returnScreen = screen }
+    if [.connect, .start, .active].contains(screen) { returnScreen = screen }
     screen = subScreen
   }
 
@@ -142,6 +187,10 @@ final class AppModel {
   }
 
   func popoverWillOpen() {
+    if screen == .start {
+      focusToken += 1
+      if !visibleCards.contains(where: { $0.id == highlightID }) { highlightID = firstMatchID }
+    }
     if schema == nil {
       if check != .checking { launch() }
     } else {
@@ -159,7 +208,7 @@ final class AppModel {
       return
     }
     use(schema)
-    screen = .start
+    screen = session == nil ? .start : .active
   }
 
   func clearFailure() {
@@ -257,6 +306,7 @@ final class AppModel {
           cards = rows
           cardsLoadedAt = Date()
           cardsFailure = nil
+          if highlightID == nil { highlightID = firstMatchID }
         } catch {
           guard !Task.isCancelled else { return }
           cardsFailure = Failure(error)
@@ -268,5 +318,186 @@ final class AppModel {
 
   private func isStale(_ loadedAt: Date?, after seconds: TimeInterval, now: Date) -> Bool {
     loadedAt.map { now.timeIntervalSince($0) > seconds } ?? true
+  }
+
+  // MARK: Start form
+
+  var rankedCards: [CardRow] { rankCards(cards ?? [], sessions: sessions ?? [], now: Date()) }
+
+  /// Selected cards first, in selection order. Search filters the rest.
+  var visibleCards: [CardRow] {
+    let ranked = rankedCards
+    let selected = selectedIDs.compactMap { id in ranked.first { $0.id == id } }
+    let query = search.trimmingCharacters(in: .whitespaces)
+    let rest = ranked.filter { card in
+      !selectedIDs.contains(card.id)
+        && (query.isEmpty
+          || card.name.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil)
+    }
+    return selected + rest
+  }
+
+  var suggestedTitle: String {
+    let first = selectedIDs.first.flatMap { id in cards?.first { $0.id == id } }
+    return defaultTitle(firstCard: first, sessions: sessions ?? [])
+  }
+
+  /// A typed length outside 1–600 minutes blocks Start.
+  var customMinutesInvalid: Bool {
+    guard !customMinutes.isEmpty else { return false }
+    return Int(customMinutes).map { !(1...600).contains($0) } ?? true
+  }
+
+  var canStart: Bool {
+    !selectedIDs.isEmpty && !customMinutesInvalid
+      && (mode == .stopwatch || Self.presets.contains(minutes) || !customMinutes.isEmpty)
+  }
+
+  private var firstMatchID: String? {
+    let rows = visibleCards
+    return rows.first { !selectedIDs.contains($0.id) }?.id ?? rows.first?.id
+  }
+
+  func toggle(_ card: CardRow) {
+    if let index = selectedIDs.firstIndex(of: card.id) {
+      selectedIDs.remove(at: index)
+    } else {
+      selectedIDs.append(card.id)
+    }
+    if !titleEdited { title = suggestedTitle }
+  }
+
+  /// An edit sticks across selection changes. Clearing the field hands the title back to the suggestion.
+  func editTitle(_ value: String) {
+    title = value
+    titleEdited = !value.isEmpty
+  }
+
+  func moveHighlight(_ delta: Int) {
+    let rows = visibleCards
+    guard !rows.isEmpty else { return }
+    let index = rows.firstIndex { $0.id == highlightID } ?? -delta
+    highlightID = rows[max(0, min(rows.count - 1, index + delta))].id
+  }
+
+  func toggleHighlighted() {
+    guard let id = highlightID, let card = visibleCards.first(where: { $0.id == id }) else {
+      return
+    }
+    toggle(card)
+    search = ""
+    highlightID = id
+  }
+
+  func pick(stopwatch: Bool, minutes value: Int? = nil) {
+    mode = stopwatch ? .stopwatch : .countdown
+    if let value { minutes = value }
+    customMinutes = ""
+  }
+
+  func editCustomMinutes(_ text: String) {
+    customMinutes = text.filter(\.isNumber)
+    if let value = Int(customMinutes), (1...600).contains(value) {
+      mode = .countdown
+      minutes = value
+    }
+  }
+
+  private func clearForm() {
+    selectedIDs = []
+    search = ""
+    title = ""
+    titleEdited = false
+    highlightID = firstMatchID
+  }
+
+  // MARK: Session
+
+  func start() {
+    guard canStart, session == nil else { return }
+    let typed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    session = ActiveSession(
+      title: typed.isEmpty ? suggestedTitle : typed,
+      cardIDs: selectedIDs,
+      target: mode == .countdown ? TimeInterval(minutes * 60) : nil,
+      start: Date()
+    )
+    clearForm()
+    screen = .active
+    closePopover()
+  }
+
+  func pause() { session?.pause(at: Date()) }
+
+  func resume() { session?.resume(at: Date()) }
+
+  /// Runs every 0.5 s while a session exists. A heartbeat every 30 s bounds the time a crash can lose.
+  func tick(_ now: Date) {
+    guard let session, session.isRunning, now.timeIntervalSince(session.heartbeat) >= 30 else {
+      return
+    }
+    self.session?.beat(at: now)
+  }
+
+  /// A clean quit records the quit moment, so the next launch resumes accounting from there.
+  func prepareToQuit() {
+    if session?.isRunning == true { session?.beat(at: Date()) }
+  }
+
+  func cardNames(_ ids: [String]) -> [String] {
+    ids.map { id in cards?.first { $0.id == id }?.name ?? "Unknown card" }
+  }
+
+  func openFinish() {
+    commitState = .idle
+    discardArmed = false
+    screen = .finish
+  }
+
+  private func backToActive() {
+    guard commitState != .saving else { return }
+    discardArmed = false
+    screen = .active
+  }
+
+  /// The first press arms Discard for 3 s. A second press discards.
+  func discardPressed() {
+    guard discardArmed else {
+      discardArmed = true
+      discardGeneration += 1
+      let generation = discardGeneration
+      Task {
+        try? await Task.sleep(for: .seconds(3))
+        if generation == discardGeneration { discardArmed = false }
+      }
+      return
+    }
+    endSession()
+  }
+
+  /// Sends the row now. A failure keeps the session on Finish. See plans/2026-10-13_study-timer-v1.md step 7.
+  func save(plannedOnly: Bool) {
+    guard commitState != .saving, let session, let schema, let apiKey,
+      let interval = session.commitInterval(at: Date(), plannedOnly: plannedOnly)
+    else { return }
+    commitState = .saving
+    Task {
+      do {
+        try await NotionClient(apiKey: apiKey).createSession(
+          schema, title: session.title, interval: interval, cardIDs: session.cardIDs)
+        endSession()
+        refresh(force: true)
+      } catch {
+        commitState = .failed(Failure(error))
+      }
+    }
+  }
+
+  private func endSession() {
+    session = nil
+    commitState = .idle
+    discardArmed = false
+    screen = .start
+    focusToken += 1
   }
 }

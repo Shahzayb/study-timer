@@ -72,23 +72,24 @@ struct ActiveSession: Codable, Equatable, Sendable {
     return session
   }
 
-  /// The Notion `Interval` for a commit at `now`, at whole seconds. Nil when it would hold no active time.
+  /// The Notion `Interval` at `now`, in whole minutes because Notion drops seconds. Nil when it rounds to zero.
   /// `plannedOnly` ends it when elapsed time reached the target, so its length equals the target.
   func commitInterval(at now: Date, plannedOnly: Bool = false) -> DateInterval? {
     if plannedOnly {
       guard let target, let reached = targetReached(at: now) else { return nil }
-      let end = reached.wholeSecond
+      let end = reached.wholeMinute
       return DateInterval(start: end.addingTimeInterval(-target), end: end)
     }
-    let end = (pausedAt ?? now).wholeSecond
-    let active = elapsed(at: end).rounded(.down)
+    let moment = pausedAt ?? now
+    let active = (elapsed(at: moment) / 60).rounded() * 60
     guard active > 0 else { return nil }
+    let end = moment.wholeMinute
     return DateInterval(start: end.addingTimeInterval(-active), end: end)
   }
 }
 
 extension Date {
-  fileprivate var wholeSecond: Date {
-    Date(timeIntervalSinceReferenceDate: timeIntervalSinceReferenceDate.rounded(.down))
+  fileprivate var wholeMinute: Date {
+    Date(timeIntervalSinceReferenceDate: (timeIntervalSinceReferenceDate / 60).rounded(.down) * 60)
   }
 }

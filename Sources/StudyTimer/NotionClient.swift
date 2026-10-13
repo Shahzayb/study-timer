@@ -115,6 +115,28 @@ struct NotionClient: Sendable {
     }
   }
 
+  /// Creates one session row and returns its page ID. Properties are keyed by ID, so renames cannot misroute them.
+  @discardableResult
+  func createSession(
+    _ schema: NotionSchema, title: String, interval: DateInterval, cardIDs: [String]
+  ) async throws -> String {
+    let body: [String: Any] = [
+      "parent": ["type": "data_source_id", "data_source_id": schema.sessionsID],
+      "properties": [
+        schema.titleID: ["title": [["text": ["content": title]]]],
+        schema.dateID: [
+          "date": [
+            "start": interval.start.formatted(.iso8601), "end": interval.end.formatted(.iso8601),
+          ]
+        ],
+        schema.relationID: ["relation": cardIDs.map { ["id": $0] }],
+      ],
+    ]
+    let page: CreatedPage = try await send(
+      "POST", "pages", body: try JSONSerialization.data(withJSONObject: body))
+    return page.id
+  }
+
   // MARK: Requests
 
   private func dataSource(_ id: String) async throws -> DataSource {
@@ -280,6 +302,10 @@ private struct PageList: Decodable {
   let results: [Page]
   let nextCursor: String?
   let hasMore: Bool
+}
+
+private struct CreatedPage: Decodable {
+  let id: String
 }
 
 private struct ErrorBody: Decodable {

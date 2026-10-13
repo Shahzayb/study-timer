@@ -3,7 +3,8 @@ import Testing
 
 @testable import StudyTimer
 
-private let t0 = Date(timeIntervalSinceReferenceDate: 800_000_000)
+/// A whole minute, like every interval Notion stores.
+private let t0 = Date(timeIntervalSinceReferenceDate: 800_000_040)
 
 private func at(_ seconds: TimeInterval) -> Date { t0.addingTimeInterval(seconds) }
 
@@ -124,9 +125,25 @@ private func countdown(minutes: Double = 25) -> ActiveSession {
     #expect(session.commitInterval(at: at(1620)) == DateInterval(start: at(0), end: at(1620)))
   }
 
-  @Test func commitUsesWholeSeconds() {
-    let session = stopwatch(start: at(0.4))
-    #expect(session.commitInterval(at: at(100.9)) == DateInterval(start: at(1), end: at(100)))
+  @Test func commitEndsAtTheMinuteAndRoundsTheActiveTime() {
+    let session = stopwatch(start: at(10))
+    #expect(session.commitInterval(at: at(99)) == DateInterval(start: at(0), end: at(60)))
+    #expect(session.commitInterval(at: at(119)) == DateInterval(start: at(-60), end: at(60)))
+  }
+
+  @Test func commitRoundsHalfAMinuteUp() {
+    let session = stopwatch()
+    #expect(session.commitInterval(at: at(89.9)) == DateInterval(start: at(0), end: at(60)))
+    #expect(session.commitInterval(at: at(90)) == DateInterval(start: at(-60), end: at(60)))
+  }
+
+  @Test func plannedOnlyEndsAtTheMinuteTheTargetWasReached() {
+    var session = countdown()
+    session.pause(at: at(30))
+    session.resume(at: at(55))
+    let interval = session.commitInterval(at: at(2000), plannedOnly: true)
+    #expect(interval == DateInterval(start: at(0), end: at(1500)))
+    #expect(interval?.duration == 1500)
   }
 
   @Test func plannedOnlyEndsWhenTheTargetWasReached() {
@@ -143,9 +160,9 @@ private func countdown(minutes: Double = 25) -> ActiveSession {
     #expect(stopwatch().commitInterval(at: at(5000), plannedOnly: true) == nil)
   }
 
-  @Test func zeroActiveTimeCannotCommit() {
+  @Test func underHalfAMinuteCannotCommit() {
     var session = stopwatch()
-    session.pause(at: at(0.5))
-    #expect(session.commitInterval(at: at(10)) == nil)
+    session.pause(at: at(29.9))
+    #expect(session.commitInterval(at: at(100)) == nil)
   }
 }

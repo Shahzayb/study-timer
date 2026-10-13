@@ -43,4 +43,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     statusBar = StatusBarController(model: model)
     model.launch()
   }
+
+  func applicationWillTerminate(_ notification: Notification) {
+    model.prepareToQuit()
+  }
 }

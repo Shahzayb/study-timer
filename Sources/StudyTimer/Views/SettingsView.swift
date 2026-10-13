@@ -20,9 +20,11 @@ struct SettingsView: View {
             .focused($focus, equals: .key)
             .help("Stored in your Keychain")
             .onSubmit(validate)
+            .disabled(model.session != nil)
           TextField("Data source", text: $model.sourceDraft)
             .focused($focus, equals: .source)
             .onSubmit(validate)
+            .disabled(model.session != nil)
           if model.check != .idle {
             CheckRow(check: model.check)
           }
