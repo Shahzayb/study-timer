@@ -436,7 +436,7 @@ final class AppModel {
     closePopover()
   }
 
-  /// Also runs on system sleep.
+  /// Also runs on system sleep and screen lock.
   func pause() {
     session?.pause(at: Date())
     mute()

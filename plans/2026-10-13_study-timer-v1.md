@@ -308,7 +308,8 @@ Behavior:
 ### Running
 
 - Pause and resume are manual.
-- System sleep pauses. The timer stays paused after wake. Screen lock MUST NOT pause.
+- System sleep and screen lock pause, because both mean the owner is away. The timer stays paused
+  after wake or unlock.
 - A quit, crash, or shutdown keeps the session. A running session comes back paused at its last
   heartbeat. Time while the app was not running MUST NOT count.
 - At zero, the countdown starts the alarm:
@@ -379,7 +380,8 @@ Editing times, rounding, logging past sessions, and creating cards.
 - **Timer state:** `accumulated + (now − segmentStart)` from wall-clock dates. A 0.5 s timer
   updates the label only while a session is active. The label changes only when its text or ring
   step changes.
-- **Sleep:** `NSWorkspace.willSleepNotification` triggers pause.
+- **Sleep and lock:** `NSWorkspace.willSleepNotification` and the `com.apple.screenIsLocked`
+  distributed notification trigger pause.
 - **Alarm:** a looping `NSSound` plus `UNUserNotificationCenter`.
 - **Login item:** `SMAppService.mainApp`.
 - **Persistence:** `~/Library/Application Support/Study Timer/` holds `active-session.json` and
@@ -440,7 +442,8 @@ owner's permission.
    alarm, and overtime.
 4. Commit once with overtime and once with planned time only. Confirm both rows in the test
    database.
-5. Run `pmset sleepnow` mid-session. The timer MUST be paused after wake and stay paused.
+5. Run `pmset sleepnow` mid-session. The timer MUST be paused after wake and stay paused. Lock
+   the screen during the alarm. The sound MUST stop, and the timer MUST be paused after unlock.
 6. Quit mid-session and relaunch. The session MUST come back paused at the quit moment. Repeat
    with `kill -9`. The session MUST come back paused at most 30 s before the kill.
 7. Commit with Wi-Fi off. The commit MUST queue. Turn Wi-Fi on. The row MUST appear exactly once.

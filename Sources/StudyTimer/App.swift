@@ -42,9 +42,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
     statusBar = StatusBarController(model: model)
     model.alarm.activate()
-    // Sleep pauses, and the timer stays paused after wake. Screen lock does not pause.
+    // Sleep and screen lock mean the owner is away. The timer stays paused after wake or unlock.
     NSWorkspace.shared.notificationCenter.addObserver(
       forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
+    ) { [model] _ in
+      MainActor.assumeIsolated { model.pause() }
+    }
+    DistributedNotificationCenter.default().addObserver(
+      forName: .init("com.apple.screenIsLocked"), object: nil, queue: .main
     ) { [model] _ in
       MainActor.assumeIsolated { model.pause() }
     }
