@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Implementation step 1 is built. The rest is decided but not built. The full spec is in
+Implementation steps 1 and 2 are built. The rest is decided but not built. The full spec is in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md).
 
 - The app is a SwiftPM package in Swift 6.4 with strict concurrency. UI state runs on
@@ -110,4 +110,4 @@ Implementation step 1 is built. The rest is decided but not built. The full spec
 - `./build.sh` builds the release binary, assembles and ad-hoc signs `Study Timer.app`, stops a
   running copy, and installs the app to `~/Applications`.
 - `open "$HOME/Applications/Study Timer.app" --args --regular` launches the app for computer use.
-- Test command: _Not yet established._
+- `swift test` runs the Swift Testing suite.
