@@ -6,11 +6,13 @@ import SwiftUI
 @MainActor
 final class StatusBarController: NSObject, NSPopoverDelegate {
   private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+  private let model: AppModel
   private let popover = NSPopover()
   private var hotKey: HotKey?
   private var clickMonitor: Any?
 
-  override init() {
+  init(model: AppModel) {
+    self.model = model
     super.init()
     if let button = statusItem.button {
       button.image = Glyph.ring(progress: 0.8, knob: true)
@@ -20,7 +22,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
       button.sendAction(on: [.leftMouseDown, .rightMouseDown])
     }
 
-    let host = NSHostingController(rootView: PopoverView())
+    let host = NSHostingController(rootView: PopoverView(model: model))
     host.sizingOptions = [.preferredContentSize]
     popover.contentViewController = host
     popover.behavior = .transient
@@ -30,6 +32,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
       self?.toggle()
     }
     if hotKey == nil { NSLog("Study Timer: ⌃⌥S is taken by another app") }
+    if model.screen == .connect { showWhenPlaced() }
   }
 
   @objc func toggle() {
@@ -40,6 +43,16 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
   }
 
+  /// The status item slides into the menu bar after launch. The popover opens once it stops moving.
+  private func showWhenPlaced(last: NSRect = .zero, tries: Int = 30) {
+    let frame = statusItem.button?.window?.frame ?? .zero
+    if frame.height > 0, frame == last { return show() }
+    guard tries > 0 else { return }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+      self.showWhenPlaced(last: frame, tries: tries - 1)
+    }
+  }
+
   private func show() {
     guard let button = statusItem.button else { return }
     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
@@ -47,6 +60,14 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     let window = popover.contentViewController?.view.window
     (window as? NSPanel)?.styleMask.insert(.nonactivatingPanel)
     window?.makeKey()
+  }
+
+  /// Esc inside a text field reaches the popover before the Back button. On a sub-screen, Esc means Back.
+  func popoverShouldClose(_ popover: NSPopover) -> Bool {
+    guard let event = NSApp.currentEvent, event.type == .keyDown,
+      event.keyCode == UInt16(kVK_Escape)
+    else { return true }
+    return !model.goBack()
   }
 
   func popoverWillShow(_ notification: Notification) {
