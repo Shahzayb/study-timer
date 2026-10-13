@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:study-timer}",
+            "name": "Debug StudyTimer",
+            "target": "StudyTimer",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug StudyTimer"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:study-timer}",
+            "name": "Release StudyTimer",
+            "target": "StudyTimer",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release StudyTimer"
+        }
+    ]
+}
