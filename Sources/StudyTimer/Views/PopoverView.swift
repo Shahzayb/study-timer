@@ -29,7 +29,6 @@ struct Footer: View {
         model.openStats()
       } label: {
         HStack(spacing: 6) {
-          Image(systemName: "chart.bar.fill").foregroundStyle(.tint)
           if let stats = model.stats(at: .now) {
             Text(hoursMinutes(stats.total)).fontWeight(.semibold).monospacedDigit()
             if model.queue.firstFailure != nil {
