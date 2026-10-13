@@ -104,6 +104,19 @@ All eight implementation steps are built. The full spec is in
   it. Full-screen screenshots and clicks reach it. A full-screen `zoom` with `save_to_disk` keeps
   real screenshots. A debug hotkey that steps through mock states lets one batch capture every
   state.
+- Computer use hides apps outside its allowlist, so a capture shows the popover over black. Over
+  black, each pixel equals color × alpha. The alpha channel of `docs/screenshot.png` holds the
+  popover's shape. A new cutout MAY reuse it while the arrow sits centered.
+- `save_to_disk` writes JPEG in the display's color profile. Convert it to sRGB before saving a PNG.
+- The popover closes when another app takes focus, so a long wait with it open can lose the shot.
+  Close it with ⌃⌥S after Start and reopen it about 0.5 s before the capture.
+- Opening the popover refreshes data older than 30 s, and the footer shows a spinner meanwhile.
+  Open and close it about 30 s before the capture, so the final open skips the refresh.
+- A countdown label holds each second for one second, and the view redraws every 0.5 s. Three
+  zooms 0.3 s apart in one batch catch a target time.
+- Picking a card fills the title with the card name. Press ⌘A in the title field before typing.
+  Discard needs two clicks within 3 s, so both clicks MUST go in one batch.
+- A demo session saves its length in the `minutes` default. Restore the owner's preset afterward.
 - macOS 27 shows a full-bleed rounded-square `.icns` with a glass edge and no gray backing tile.
 - Builds use ad-hoc signing, so they need no signing identity.
 
