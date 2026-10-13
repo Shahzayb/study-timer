@@ -24,6 +24,12 @@ struct ConnectView: View {
         .focused($keyFocused)
         .disabled(checking)
         .padding(.top, 24)
+      TextField("Data source ID", text: $model.sourceDraft, prompt: Text("Data source ID"))
+        .labelsHidden()
+        .textFieldStyle(.roundedBorder)
+        .controlSize(.large)
+        .disabled(checking)
+        .padding(.top, 8)
       Group {
         if case .failed(let failure) = model.check {
           Label(failure.text, systemImage: "xmark.circle.fill")
@@ -50,11 +56,15 @@ struct ConnectView: View {
       .buttonStyle(.borderedProminent)
       .controlSize(.large)
       .keyboardShortcut(.defaultAction)
-      .disabled(model.keyDraft.isEmpty || checking)
+      .disabled(model.keyDraft.isEmpty || model.sourceDraft.isEmpty || checking)
       Spacer(minLength: 0)
       HStack {
-        Link("Get a key", destination: URL(string: "https://www.notion.so/profile/integrations")!)
-          .font(.callout)
+        Link(
+          "Get a key",
+          destination: URL(
+            string: "https://developers.notion.com/guides/get-started/personal-access-tokens")!
+        )
+        .font(.callout)
         Spacer()
         IconButton(symbol: "power", label: "Quit") { NSApp.terminate(nil) }
       }
@@ -63,6 +73,7 @@ struct ConnectView: View {
     .padding(.bottom, 8)
     .onAppear { keyFocused = true }
     .onChange(of: model.keyDraft) { model.clearFailure() }
+    .onChange(of: model.sourceDraft) { model.clearFailure() }
     // The field loses focus while it is disabled during the check.
     .onChange(of: checking) { _, now in keyFocused = !now }
   }

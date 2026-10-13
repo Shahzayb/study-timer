@@ -33,17 +33,14 @@ All eight implementation steps are built. The full spec is in
 - `POST /v1/pages` creates a row with `parent: {type: "data_source_id", data_source_id}`.
 - A relation schema exposes `data_source_id`. Relation schema writes accept `data_source_id` only.
   A page's relation value is a list of page IDs.
-- The sessions database is `📚 Daily Study Stats`. Its database ID is
-  `<redacted>`. Its data source ID is
-  `<redacted>`.
+- The sessions database is `📚 Daily Study Stats`. The installed app stores its data source ID
+  under the `dataSourceID` default.
 - Sessions have `Title` (title), `Interval` (datetime range), a relation to cards, and formulas
   `Minutes` and `Hours`. The relation is named
   `My Learning Path: Organizing and Achieving Study Goals!`.
 - The app MUST resolve the title, date, and relation properties by type. Name lookups break when
   the owner renames a property.
-- The cards database is `My Learning Path`. Its database ID is
-  `<redacted>`. Its data source ID is
-  `<redacted>`.
+- The cards database is `My Learning Path`. Discovery reads its data source ID from the relation.
 - Cards have `Name` (title) and two selects, `Status` and `Priority`. Two selects rule out a type
   lookup. The app MUST find `Status` by name. Without it, ranking drops the "Doing" tie-break. The
   status options are Doing, Done 🙌, Gave Up, Backlog, and On Hold.
@@ -52,9 +49,9 @@ All eight implementation steps are built. The full spec is in
 - The session-to-card relation is two-way. Cards show it as `📚 Daily Study Stats`.
 - Manual testing writes to a separate `Study Timer Test` database. It has `Title` (title),
   `Interval` (date), and `Cards`, a one-way relation to cards, so the cards schema stays unchanged.
-  Its database ID is `<redacted>`. Its data source ID is
-  `<redacted>`. Its test rows from 2026-10-12 and 2026-10-13 link only to
-  `English Speaking` and `German A1`. They raise those cards in the ranking.
+  The owner copies its data source ID from Notion when a checkpoint needs it. Its test rows from
+  2026-10-12 and 2026-10-13 link only to `English Speaking` and `German A1`. They raise those cards
+  in the ranking.
 - All three databases are top-level pages. The integration MUST be connected to each one. Nothing
   inherits access. The owner's integration has Read content and Insert content and is connected to
   all three. Insert content is enough to write the live two-way relation.
@@ -69,6 +66,8 @@ All eight implementation steps are built. The full spec is in
 
 ## Constraints
 
+- The repo goes public on GitHub as `Shahzayb/study-timer`. It MUST NOT hold Notion IDs or the
+  owner's Gmail address. Commits use `29760858+Shahzayb@users.noreply.github.com`.
 - The Notion API key lives only in the macOS Keychain.
 - Ad-hoc signing changes the code signature on every rebuild. A rebuilt app still reads its Keychain
   item without a prompt, so rebuilding during a checkpoint is safe. `SMAppService.mainApp`

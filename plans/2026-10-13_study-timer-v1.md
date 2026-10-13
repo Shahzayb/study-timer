@@ -3,7 +3,7 @@
 Status: implemented on 2026-10-13.
 
 Read first: `CLAUDE.md`, then `memory-bank/progress.md`, `memory-bank/projectbrief.md`, and
-`memory-bank/techContext.md`. `techContext.md` holds the Notion IDs, the API contracts, and the
+`memory-bank/techContext.md`. `techContext.md` holds the Notion schema, the API contracts, and the
 toolchain limits. This plan does not repeat them.
 
 ## Context

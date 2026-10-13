@@ -42,7 +42,6 @@ final class AppModel {
     case failed(Failure)
   }
 
-  static let liveSessionsID = "<redacted>"
   static let presets = [25, 45, 60, 90]
   /// `--fast-countdown` runs countdown minutes as seconds for manual testing.
   static let minuteLength: TimeInterval =
@@ -121,7 +120,7 @@ final class AppModel {
 
   init() {
     let defaults = UserDefaults.standard
-    let source = defaults.string(forKey: "dataSourceID") ?? Self.liveSessionsID
+    let source = defaults.string(forKey: "dataSourceID") ?? ""
     let key = Keychain.read()
     dataSourceID = source
     sourceDraft = source
@@ -274,12 +273,8 @@ final class AppModel {
   }
 
   func connect() async {
-    let key = keyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard let schema = await discover(key: key, source: dataSourceID), save(key: key) else {
-      return
-    }
-    use(schema)
-    screen = session == nil ? .start : .active
+    await commitDrafts()
+    if apiKey != nil, schema != nil { screen = session == nil ? .start : .active }
   }
 
   func clearFailure() {

@@ -20,10 +20,9 @@ You need macOS 27 and Swift 6.4.
 
    ```sh
    ./build.sh
-   defaults write dev.local.StudyTimer dataSourceID <data-source-id>
    open "$HOME/Applications/Study Timer.app"
    ```
 
-5. Press ⌃⌥S and paste the token.
+5. Press ⌃⌥S. Paste the token and the data source ID.
 
 `swift test` runs the tests. It needs Command Line Tools in `/Library/Developer/CommandLineTools`.
