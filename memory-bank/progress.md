@@ -4,7 +4,7 @@
 
 The owner approved plan v1 in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md) on 2026-10-13. Work
-runs on branch `feat/study-timer-v1`. Implementation steps 1 to 4 are done. The app connects to
+runs on branch `feat/study-timer-v1`. Implementation steps 1 to 5 are done. The app connects to
 the `Study Timer Test` database.
 
 The throwaway UI prototype lives outside the repo in `~/Programming/study-timer-prototype`. It is
@@ -12,7 +12,7 @@ installed as `~/Applications/Study Timer Prototype.app`. `shots/` holds a render
 
 ## Next action
 
-1. Claude implements step 5: Start, running, and finish views.
+1. Claude implements step 6: alarm, notifications, and sleep pause.
 
 ## Validation gaps
 

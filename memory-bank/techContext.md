@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Implementation steps 1 to 4 are built. The rest is decided but not built. The full spec is in
+Implementation steps 1 to 5 are built. The rest is decided but not built. The full spec is in
 [plans/2026-10-13_study-timer-v1.md](../plans/2026-10-13_study-timer-v1.md).
 
 - The app is a SwiftPM package in Swift 6.4 with strict concurrency. UI state runs on
@@ -19,10 +19,10 @@ Implementation steps 1 to 4 are built. The rest is decided but not built. The fu
 - The app saves the active session on every state change, plus a heartbeat every 30 s while it
   runs. A quit, crash, or shutdown keeps it. A running session restores as paused at its last
   heartbeat, so downtime never counts.
-- A commit writes `Interval = [end − activeTime, end]` at exact seconds. Pauses move the start
-  later.
-- `end` is the commit moment. When paused, `end` is the pause moment. "Commit without overtime"
-  uses the moment elapsed time reached the target.
+- A commit writes `Interval = [end − activeTime, end]` in whole minutes. `activeTime` rounds to
+  the nearest minute. Pauses move the start later.
+- `end` is the commit moment floored to the minute. When paused, `end` is the pause moment.
+  "Commit without overtime" uses the moment elapsed time reached the target.
 - `NSWorkspace.willSleepNotification` pauses the timer. The timer stays paused after wake. Screen
   lock MUST NOT pause it.
 
@@ -53,11 +53,13 @@ Implementation steps 1 to 4 are built. The rest is decided but not built. The fu
 - Manual testing writes to a separate `Study Timer Test` database. It has `Title` (title),
   `Interval` (date), and `Cards`, a one-way relation to cards, so the cards schema stays unchanged.
   Its database ID is `<redacted>`. Its data source ID is
-  `<redacted>`. It keeps four `checkpoint …` rows from 2026-10-12 and
-  2026-10-13, linked to `English Speaking` and `German A1`. They raise those cards in the ranking.
+  `<redacted>`. Its test rows from 2026-10-12 and 2026-10-13 link only to
+  `English Speaking` and `German A1`. They raise those cards in the ranking.
 - All three databases are top-level pages. The integration MUST be connected to each one. Nothing
   inherits access. The owner's integration has Read content and Insert content and is connected to
   all three.
+- Notion stores date-times to the minute and drops the seconds. Every interval the app writes
+  MUST use whole minutes, or the stored duration drifts by up to a minute.
 - Notion date strings arrive in three forms: with milliseconds, without them, or date-only. The
   offset is `Z` or `+00:00`. The parser MUST handle every form.
 - How date filters treat range ends is unverified. The app queries a 90-day window by start date.
